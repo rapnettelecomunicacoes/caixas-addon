@@ -56,11 +56,11 @@ if ! grep -q "Gerenciador FTTH" "$ADDON_JS"; then
     echo "⏳ Registrando no menu..."
     cat >> "$ADDON_JS" << 'ADDON_CODE'
 const caixas = window.location.protocol + "//" + window.location.hostname + (window.location.port ? ':' + window.location.port: '') + "/admin/addons/caixas/";
-add_menu.opcoes('{"plink": "' + caixas + '?_route=painel", "ptext": "Gerenciador FTTH"}');
+add_menu.opcoes('{"plink": "' + caixas + '?_route=inicio", "ptext": "Gerenciador FTTH"}');
 ADDON_CODE
 fi
 
 echo ""
 echo "✅ Instalação concluída!"
-echo "📍 URL: /admin/addons/caixas/?_route=painel"
+echo "📍 URL: /admin/addons/caixas/?_route=inicio"
 echo "==============================================="
