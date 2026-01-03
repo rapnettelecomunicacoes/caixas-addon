@@ -5,92 +5,47 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', dirname(__FILE__) . '/error.log');
 
-// === INICIALIZAR SESSÃO ===
-session_name('mka');
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// === CARREGAR AUTH HANDLER ===
+// === VERIFICAÇÃO DE AUTENTICAÇÃO FLEXÍVEL ===
+// Usa gestor que detecta qualquer variável de sessão do mk-auth
 require_once dirname(__FILE__) . '/src/auth_handler.php';
+AuthHandler::requireAuth();
 
-// Se sessão está vazia, ainda assim deixar carregar o dashboard
-if (!empty($_SESSION) && !AuthHandler::isAuthenticated()) {
-    header("Location: ../../");
-    exit();
+// === CARREGAR DEPENDÊNCIAS ===
+$addon_base = dirname(__FILE__);
+require_once $addon_base . '/addons.class.php';
+
+// === VALIDAR LICENÇA ===
+if (file_exists($addon_base . "/src/LicenseMiddleware.php")) {
+    require_once $addon_base . "/src/LicenseMiddleware.php";
+    $middleware = new LicenseMiddleware();
+    $status = $middleware->getStatus();
+    if (!$status["instalada"] || (isset($status["expirada"]) && $status["expirada"])) {
+        header("Location: src/license_install.php");
+        exit;
+    }
 }
 
-// === DADOS DO ADDON ===
-$addon_name = "Gerenciador FTTH";
-$addon_version = "2.0";
-$addon_base = dirname(__FILE__);
+// === CONTROLAR ROTEAMENTO ===
+$route = isset($_GET['_route']) ? $_GET['_route'] : '';
 
-// Funcionalidades disponíveis
-$features = [
-    [
-        'icon' => '📊',
-        'title' => 'Componentes CTO',
-        'description' => 'Gerencie todos os componentes de seus CTOs instalados na rede.',
-        'link' => '?_route=inicio',
-        'color' => '#667eea'
-    ],
-    [
-        'icon' => '➕',
-        'title' => 'Adicionar Componente',
-        'description' => 'Registre novos componentes e CTO no sistema.',
-        'link' => '?_route=adicionar',
-        'color' => '#764ba2'
-    ],
-    [
-        'icon' => '✏️',
-        'title' => 'Editar Componentes',
-        'description' => 'Modifique informações de componentes existentes.',
-        'link' => '?_route=editar',
-        'color' => '#f093fb'
-    ],
-    [
-        'icon' => '🗺️',
-        'title' => 'Mapas',
-        'description' => 'Visualize a localização dos CTOs em mapas interativos.',
-        'link' => '?_route=maps',
-        'color' => '#4facfe'
-    ],
-    [
-        'icon' => '👥',
-        'title' => 'Mapa de Clientes',
-        'description' => 'Visualize distribuição de clientes por área.',
-        'link' => '?_route=mapadeclientes',
-        'color' => '#43e97b'
-    ],
-    [
-        'icon' => '��',
-        'title' => 'Mapa de CTOs',
-        'description' => 'Visualize todos os CTOs na rede.',
-        'link' => '?_route=mapadectos',
-        'color' => '#fa709a'
-    ],
-    [
-        'icon' => '⚙️',
-        'title' => 'Configurações',
-        'description' => 'Configure opções do sistema e preferências.',
-        'link' => '?_route=configurar',
-        'color' => '#30cfd0'
-    ],
-    [
-        'icon' => '💾',
-        'title' => 'Backup',
-        'description' => 'Realize backup e restaure dados do sistema.',
-        'link' => '?_route=backup',
-        'color' => '#a8edea'
-    ]
-];
+// === INCLUIR APLICAÇÃO SE HOUVER ROTA ===
+if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup', 'maps', 'mapadeclientes', 'mapadectos', 'configurar'])) {
+    $app_file = $addon_base . '/src/cto/componente/' . $route . '/index.php';
+    if (file_exists($app_file)) {
+        include_once $app_file;
+        exit();
+    }
+}
+
+// === RENDERIZAR DASHBOARD PADRÃO ===
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $addon_name; ?> v<?php echo $addon_version; ?></title>
+    <title>MK - AUTH :: <?php echo $Manifest->name; ?></title>
+    
     <style>
         * {
             margin: 0;
@@ -99,13 +54,15 @@ $features = [
         }
 
         html, body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            width: 100%;
+            height: 100%;
         }
 
-        .container {
+        .dashboard-container {
             max-width: 1400px;
             margin: 0 auto;
         }
@@ -113,127 +70,190 @@ $features = [
         .header {
             text-align: center;
             color: white;
-            margin-bottom: 50px;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.6s ease-out;
         }
 
         .header h1 {
-            font-size: 3em;
+            font-size: 2.5em;
             margin-bottom: 10px;
-            font-weight: 700;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
 
         .header p {
-            font-size: 1.2em;
-            opacity: 0.95;
-        }
-
-        .version {
-            display: inline-block;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            margin-left: 10px;
+            font-size: 1.1em;
+            opacity: 0.9;
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 25px;
-            margin-bottom: 40px;
+            margin-top: 30px;
         }
 
         .feature-card {
             background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
             cursor: pointer;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 280px;
         }
 
         .feature-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         }
 
-        .feature-card a {
-            text-decoration: none;
-            color: inherit;
-            display: block;
-        }
-
-        .feature-icon {
-            font-size: 2.5em;
+        .card-icon {
+            font-size: 3.5em;
             margin-bottom: 15px;
+            display: inline-block;
         }
 
-        .feature-card h3 {
-            color: #333;
-            font-size: 1.3em;
-            margin-bottom: 10px;
+        .card-title {
+            font-size: 1.5em;
             font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
         }
 
-        .feature-card p {
+        .card-description {
             color: #666;
             font-size: 0.95em;
-            line-height: 1.6;
+            line-height: 1.5;
+            flex-grow: 1;
         }
 
-        .footer {
-            text-align: center;
-            color: rgba(255,255,255,0.8);
-            padding: 20px;
+        .card-footer {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            color: #667eea;
+            font-weight: 600;
             font-size: 0.9em;
         }
 
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .feature-card {
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .feature-card:nth-child(1) { animation-delay: 0.1s; }
+        .feature-card:nth-child(2) { animation-delay: 0.2s; }
+        .feature-card:nth-child(3) { animation-delay: 0.3s; }
+        .feature-card:nth-child(4) { animation-delay: 0.4s; }
+        .feature-card:nth-child(5) { animation-delay: 0.5s; }
+        .feature-card:nth-child(6) { animation-delay: 0.6s; }
+        .feature-card:nth-child(7) { animation-delay: 0.7s; }
+        .feature-card:nth-child(8) { animation-delay: 0.8s; }
+
         @media (max-width: 768px) {
             .header h1 {
-                font-size: 2em;
+                font-size: 1.8em;
             }
-
             .features-grid {
-                grid-template-columns: 1fr;
+                gap: 15px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="dashboard-container">
         <div class="header">
-            <h1>📡 <?php echo $addon_name; ?><span class="version">v<?php echo $addon_version; ?></span></h1>
-            <p>Sistema de Gestão de CTO e Componentes FTTH</p>
+            <h1>🎯 Central de Componentes CTO</h1>
+            <p>Gerencie todos os seus componentes e mapas em um único lugar</p>
         </div>
 
         <div class="features-grid">
-            <?php foreach ($features as $feature): ?>
-                <div class="feature-card">
-                    <a href="<?php echo htmlspecialchars($feature['link']); ?>">
-                        <div class="feature-icon"><?php echo $feature['icon']; ?></div>
-                        <h3><?php echo htmlspecialchars($feature['title']); ?></h3>
-                        <p><?php echo htmlspecialchars($feature['description']); ?></p>
-                    </a>
+            <a href="?_route=inicio" class="feature-card">
+                <div>
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">Componentes CTO</div>
+                    <div class="card-description">Visualize e gerencie todos os componentes cadastrados na sua rede.</div>
                 </div>
-            <?php endforeach; ?>
-        </div>
+                <div class="card-footer">Acessar →</div>
+            </a>
 
-        <div class="footer">
-            <p>Gerenciador FTTH © 2026 | Desenvolvido por Patrick Nascimento</p>
+            <a href="?_route=adicionar" class="feature-card">
+                <div>
+                    <div class="card-icon">➕</div>
+                    <div class="card-title">Adicionar Componente</div>
+                    <div class="card-description">Registre novos componentes CTO na sua base de dados.</div>
+                </div>
+                <div class="card-footer">Acessar →</div>
+            </a>
+
+            <a href="?_route=editar" class="feature-card">
+                <div>
+                    <div class="card-icon">✏️</div>
+                    <div class="card-title">Editar Componentes</div>
+                    <div class="card-description">Modifique informações de componentes existentes.</div>
+                </div>
+                <div class="card-footer">Acessar →</div>
+            </a>
+
+            <a href="?_route=maps" class="feature-card">
+                <div>
+                    <div class="card-icon">🗺️</div>
+                    <div class="card-title">Mapas</div>
+                    <div class="card-description">Visualize a localização geográfica dos componentes.</div>
+                </div>
+                <div class="card-footer">Acessar →</div>
+            </a>
+
+            <a href="?_route=mapadeclientes" class="feature-card">
+                <div>
+                    <div class="card-icon">👥</div>
+                    <div class="card-title">Mapa de Clientes</div>
+                    <div class="card-description">Veja onde estão localizados seus clientes.</div>
+                </div>
+                <div class="card-footer">Acessar →</div>
+            </a>
+
+            <a href="?_route=mapadectos" class="feature-card">
+                <div>
+                    <div class="card-icon">🏢</div>
+                    <div class="card-title">Mapa de CTOs</div>
+                    <div class="card-description">Analise a distribuição das CTOs na cobertura.</div>
+                </div>
+                <div class="card-footer">Acessar →</div>
+            </a>
+
+            <a href="?_route=configurar" class="feature-card">
+                <div>
+                    <div class="card-icon">⚙️</div>
+                    <div class="card-title">Configurações</div>
+                    <div class="card-description">Ajuste as configurações do addon.</div>
+                </div>
+                <div class="card-footer">Acessar →</div>
+            </a>
+
+            <a href="?_route=backup" class="feature-card">
+                <div>
+                    <div class="card-icon">💾</div>
+                    <div class="card-title">Backup</div>
+                    <div class="card-description">Faça backup dos seus dados.</div>
+                </div>
+                <div class="card-footer">Acessar →</div>
+            </a>
         </div>
     </div>
 </body>
