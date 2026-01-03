@@ -36,12 +36,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $ctos[] = $row;
             }
             
+            // Buscar clientes atribuídos às CTOs
+            $clientes = array();
+            $sql_clientes = "SELECT * FROM sis_cliente WHERE cto_id IS NOT NULL AND cto_id > 0 ORDER BY cto_id, id";
+            $result_clientes = $db_linker->query($sql_clientes);
+            
+            if ($result_clientes) {
+                while ($row = mysqli_fetch_assoc($result_clientes)) {
+                    $clientes[] = $row;
+                }
+            }
+            
             // Criar JSON
             $backup_data = array(
                 'data_backup' => date('Y-m-d H:i:s'),
                 'versao' => '1.0',
                 'total_ctos' => count($ctos),
-                'ctos' => $ctos
+                'total_clientes' => count($clientes),
+                'ctos' => $ctos,
+                'clientes' => $clientes
             );
             
             $json_content = json_encode($backup_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
@@ -135,6 +148,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             // Confirmar transação
             $db_linker->query('COMMIT');
+            
+            // Agora restaurar clientes se existirem
+            if (isset($data['clientes']) && is_array($data['clientes']) && count($data['clientes']) > 0) {
+                $db_linker->query('START TRANSACTION');
+                $clientes_inserted = 0;
+                $clientes_updated = 0;
+                
+                foreach ($data['clientes'] as $cliente) {
+                    $id = intval($cliente['id']);
+                    $nome = $db_linker->escape($cliente['nome'] ?? '');
+                    $documento = $db_linker->escape($cliente['documento'] ?? '');
+                    $cto_id = intval($cliente['cto_id'] ?? 0);
+                    
+                    // Verificar se cliente já existe
+                    $check = $db_linker->query("SELECT id FROM sis_cliente WHERE id = $id");
+                    
+                    if (mysqli_num_rows($check) > 0) {
+                        // Atualizar
+                        $update_sql = "UPDATE sis_cliente SET 
+                            nome = '$nome',
+                            documento = '$documento',
+                            cto_id = $cto_id
+                            WHERE id = $id";
+                        
+                        if ($db_linker->query($update_sql)) {
+                            $clientes_updated++;
+                        }
+                    } else {
+                        // Inserir
+                        $insert_sql = "INSERT INTO sis_cliente (id, nome, documento, cto_id)
+                            VALUES ($id, '$nome', '$documento', $cto_id)";
+                        
+                        if ($db_linker->query($insert_sql)) {
+                            $clientes_inserted++;
+                        }
+                    }
+                }
+                
+                $db_linker->query('COMMIT');
+                $_SESSION['mensagem_sucesso'] .= ' | Clientes: ' . $clientes_inserted . ' inseridos, ' . $clientes_updated . ' atualizados.';
+            }
             
             $_SESSION['mensagem_sucesso'] = 'Backup restaurado com sucesso! (' . $inserted . ' inseridas, ' . $updated . ' atualizadas)';
             header('Location: ?_route=backup');
