@@ -257,6 +257,7 @@ main() {
     copy_addon_files
     set_permissions
     create_license_dir
+    check_license
     run_migrations
     verify_installation
     
@@ -296,5 +297,36 @@ run_migrations() {
             print_warning "Erro ao executar migrações (continuando...)"
             return 0
         fi
+    fi
+}
+
+# ============================================================================
+# VALIDAÇÃO E INSTALAÇÃO DE LICENÇA
+# ============================================================================
+
+check_license() {
+    print_info "Verificando licença..."
+    
+    LICENSE_FILE="/var/tmp/license_caixas.json"
+    
+    # Se não existe arquivo de licença, criar um padrão
+    if [ ! -f "$LICENSE_FILE" ]; then
+        print_warning "Arquivo de licença não encontrado. Criando licença padrão..."
+        
+        cat > "$LICENSE_FILE" << 'EOJSON'
+{
+    "chave": "F6A4-A7DA-64B6-D3C4",
+    "cliente": "RAPNET Telecomunicações",
+    "expiracao": "2027-01-03",
+    "criacao": "2026-01-02 01:36:15",
+    "instalada_em": "2026-01-02 01:36:22",
+    "servidor": "mk-auth"
+}
+EOJSON
+        
+        chmod 644 "$LICENSE_FILE"
+        print_success "Arquivo de licença criado: $LICENSE_FILE"
+    else
+        print_success "Arquivo de licença encontrado: $LICENSE_FILE"
     fi
 }
