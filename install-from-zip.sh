@@ -42,10 +42,11 @@ fi
 echo -e "${YELLOW}ℹ️  Extraindo arquivos...${NC}"
 unzip -q addon.zip
 
-# 4. Encontrar diretório caixas
-CAIXAS_DIR=$(find . -maxdepth 3 -type d -name "caixas" | head -1)
-if [ ! -d "$CAIXAS_DIR" ]; then
-    echo -e "${RED}❌ Diretório 'caixas' não encontrado${NC}"
+# 4. Ir para o diretório do repositório (caixas-addon-main/)
+cd caixas-addon-main
+
+if [ ! -f "index.php" ]; then
+    echo -e "${RED}❌ Arquivo index.php não encontrado no repositório${NC}"
     rm -rf "$TEMP_DIR"
     exit 1
 fi
@@ -63,9 +64,10 @@ if [ -d "$ADDON_PATH" ]; then
     rm -rf "$ADDON_PATH"
 fi
 
-# 7. Instalar
+# 7. Instalar (copia o conteúdo de caixas-addon-main/ para $ADDON_PATH)
 echo -e "${YELLOW}ℹ️  Copiando arquivos...${NC}"
-cp -r "$CAIXAS_DIR" "$ADDON_PATH"
+mkdir -p "$ADDON_PATH"
+cp -r . "$ADDON_PATH"
 
 # 8. Definir permissões
 echo -e "${YELLOW}ℹ️  Configurando permissões...${NC}"
