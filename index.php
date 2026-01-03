@@ -1,10 +1,4 @@
 <?php
-// === CONFIGURAÇÃO INICIAL ===
-error_reporting(E_ALL);
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', dirname(__FILE__) . '/error.log');
-
 // === VERIFICAÇÃO DE LICENÇA ===
 require_once dirname(__FILE__) . '/src/LicenseManager.php';
 $licenseManager = new LicenseManager();
@@ -15,6 +9,17 @@ if (!$licenseStatus['instalada'] || $licenseStatus['expirada']) {
     header('Location: src/license_install.php');
     exit;
 }
+
+// === CONFIGURAÇÃO DO SERVIDOR ===
+require_once dirname(__FILE__) . '/src/ServerConfig.php';
+$serverConfig = new ServerConfig();
+$admin_url = $serverConfig->getAdminUrl();
+
+// === CONFIGURAÇÃO INICIAL ===
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', dirname(__FILE__) . '/error.log');
 
 // === VERIFICAÇÃO DE AUTENTICAÇÃO FLEXÍVEL ===
 // Usa gestor que detecta qualquer variável de sessão do mk-auth
@@ -139,7 +144,10 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
         }
 
         .header {
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
             color: white;
             margin-bottom: 40px;
             animation: fadeInDown 0.6s ease-out;
@@ -149,10 +157,12 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
             font-size: 2.5em;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            text-align: left;
         }
 
         .header p {
             font-size: 1.1em;
+            text-align: left;
             opacity: 0.9;
         }
 
@@ -393,9 +403,140 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
     <div class="dashboard-container">
         <!-- Header -->
         <div class="header">
-            <h1>🗺️ Mapa de CTOs</h1>
-            <p>Sistema de Gerenciamento de Caixas de Terminação Óptica</p>
+            <div style="flex: 1;">
+                <h1>🗺️ Mapa de CTOs</h1>
+                <p>Sistema de Gerenciamento de Caixas de Terminação Óptica</p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                <a href="<?php echo htmlspecialchars($admin_url); ?>" id="btn-voltar" style="
+                    background: #667eea;
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-top: 10px;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='#5568d3'" onmouseout="this.style.background='#667eea'">
+                    ← Voltar ao MK-AUTH
+                </a>
+                <button onclick="abrirEditorUrl()" style="
+                    background: #667eea;
+                    color: white;
+                    border: none;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 1.1em;
+                    margin-top: 10px;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='#5568d3'" onmouseout="this.style.background='#667eea'" title="Editar URL do MK-AUTH">
+                    ✏️
+                </button>
+            </div>
         </div>
+
+        <!-- Modal de Edição de URL -->
+        <div id="modal-url" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 500px; width: 90%;">
+                <h2 style="color: #333; margin-bottom: 20px;">Editar URL do MK-AUTH</h2>
+                <input type="text" id="input-url" placeholder="https://seu-dominio.com/admin" style="
+                    width: 100%;
+                    padding: 12px;
+                    border: 2px solid #ddd;
+                    border-radius: 6px;
+                    font-size: 1em;
+                    margin-bottom: 20px;
+                " value="<?php echo htmlspecialchars($admin_url); ?>">
+                <div style="color: #999; font-size: 0.9em; margin-bottom: 20px;">
+                    Exemplos: https://rapnettelecomunicacoes.net.br/admin ou http://172.16.123.6/admin
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="salvarUrl()" style="
+                        background: #10b981;
+                        color: white;
+                        padding: 12px 24px;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        flex: 1;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                        💾 Salvar
+                    </button>
+                    <button onclick="fecharEditorUrl()" style="
+                        background: #ef4444;
+                        color: white;
+                        padding: 12px 24px;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        flex: 1;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+                        ✕ Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        function abrirEditorUrl() {
+            document.getElementById('modal-url').style.display = 'flex';
+        }
+        
+        function fecharEditorUrl() {
+            document.getElementById('modal-url').style.display = 'none';
+        }
+        
+        function salvarUrl() {
+            var url = document.getElementById('input-url').value.trim();
+            
+            if (!url) {
+                alert('Por favor, digite uma URL');
+                return;
+            }
+            
+            // Validar URL básica
+            if (!url.includes('://')) {
+                alert('URL inválida. Use https:// ou http://');
+                return;
+            }
+            
+            // Enviar para servidor
+            fetch('<?php echo dirname($_SERVER['SCRIPT_NAME']); ?>/src/config_server.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'admin_url=' + encodeURIComponent(url)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    alert('URL salva com sucesso!');
+                    // Atualizar botão
+                    document.getElementById('btn-voltar').href = data.url;
+                    fecharEditorUrl();
+                } else {
+                    alert('Erro ao salvar: ' + data.mensagem);
+                }
+            })
+            .catch(error => {
+                alert('Erro ao conectar com servidor');
+                console.error(error);
+            });
+        }
+        
+        // Fechar modal ao pressionar ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                fecharEditorUrl();
+            }
+        });
+        </script>
 
         <!-- Stats Section -->
         <div class="stats-grid">
