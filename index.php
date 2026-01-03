@@ -42,19 +42,20 @@ if (file_exists($addon_base . '/src/cto/config/database.php')) {
             $portas_totais = intval($row['total']) ?: 0;
         }
         
-        // Contar clientes atribuídos (portas utilizadas)
-        $query_utilizadas = "SELECT COUNT(*) as total FROM sis_cliente";
+        // Contar clientes atribuídos a CTOs (portas utilizadas)
+        $query_utilizadas = "SELECT COUNT(*) as total FROM sis_cliente WHERE cto_id IS NOT NULL AND cto_id > 0";
         $result_utilizadas = @mysqli_query($connection, $query_utilizadas);
         if ($result_utilizadas) {
             $row = mysqli_fetch_assoc($result_utilizadas);
             $portas_utilizadas = intval($row['total']) ?: 0;
-            $portas_livres = $portas_totais - $portas_utilizadas;
+            $portas_livres = max(0, $portas_totais - $portas_utilizadas);
         }
         
-        // Contar clientes online (portas ativas)
+        // Contar clientes online atribuídos a CTOs (portas ativas)
         $query_ativas = "SELECT COUNT(*) as total FROM sis_cliente sc
                         INNER JOIN radacct ra ON ra.username = sc.login 
-                        WHERE ra.acctstoptime IS NULL";
+                        WHERE ra.acctstoptime IS NULL
+                        AND sc.cto_id IS NOT NULL AND sc.cto_id > 0";
         $result_ativas = @mysqli_query($connection, $query_ativas);
         if ($result_ativas) {
             $row = mysqli_fetch_assoc($result_ativas);
