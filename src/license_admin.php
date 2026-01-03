@@ -855,7 +855,7 @@ $status_licenca = $license->getLicenseStatus();
     </div>
     
     <script>
-        function switchTab(tabName) {
+        window.switchTab = function(tabName) {
             // Esconder todas as abas
             var contents = document.querySelectorAll('.tab-content');
             contents.forEach(function(content) {
@@ -875,16 +875,16 @@ $status_licenca = $license->getLicenseStatus();
             if (event && event.target) {
                 event.target.classList.add('active');
             }
-        }
+        };
         
-        function copiarChave() {
+        window.copiarChave = function() {
             var chave = document.getElementById('chave-gerada').textContent;
             navigator.clipboard.writeText(chave).then(function() {
                 alert('Chave copiada para o clipboard!');
             }).catch(function(err) {
                 console.error('Erro ao copiar: ', err);
             });
-        }
+        };
         
         // Ao carregar a página, ativar a aba correta baseado no parâmetro URL
         document.addEventListener('DOMContentLoaded', function() {
