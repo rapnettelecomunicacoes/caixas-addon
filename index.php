@@ -42,27 +42,26 @@ if (file_exists($addon_base . '/src/cto/config/database.php')) {
             $portas_totais = intval($row['total']) ?: 0;
         }
         
-        // Calcular portas livres por CTO
-        // Soma de (capacidade_cto - clientes_atribuidos_naquela_cto) para cada CTO
+        // Calcular portas livres por CTO (usando caixa_herm como referência)
         $query_livres = "SELECT SUM(mp.capacidade - COALESCE(cliente_count.total, 0)) as total
                         FROM mp_caixa mp
                         LEFT JOIN (
-                            SELECT cto_id, COUNT(*) as total 
+                            SELECT caixa_herm, COUNT(*) as total 
                             FROM sis_cliente 
-                            WHERE cto_id IS NOT NULL AND cto_id > 0
-                            GROUP BY cto_id
-                        ) cliente_count ON mp.id = cliente_count.cto_id";
+                            WHERE caixa_herm IS NOT NULL AND caixa_herm != ''
+                            GROUP BY caixa_herm
+                        ) cliente_count ON mp.nome = cliente_count.caixa_herm";
         $result_livres = @mysqli_query($connection, $query_livres);
         if ($result_livres) {
             $row = mysqli_fetch_assoc($result_livres);
             $portas_livres = max(0, intval($row['total']) ?: 0);
         }
         
-        // Contar clientes online atribuídos a CTOs (portas ativas)
+        // Contar clientes online (portas ativas) - usando caixa_herm
         $query_ativas = "SELECT COUNT(*) as total FROM sis_cliente sc
                         INNER JOIN radacct ra ON ra.username = sc.login 
                         WHERE ra.acctstoptime IS NULL
-                        AND sc.cto_id IS NOT NULL AND sc.cto_id > 0";
+                        AND sc.caixa_herm IS NOT NULL AND sc.caixa_herm != ''";
         $result_ativas = @mysqli_query($connection, $query_ativas);
         if ($result_ativas) {
             $row = mysqli_fetch_assoc($result_ativas);
