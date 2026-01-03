@@ -451,7 +451,7 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
                     margin-bottom: 20px;
                 " value="<?php echo htmlspecialchars($admin_url); ?>">
                 <div style="color: #999; font-size: 0.9em; margin-bottom: 20px;">
-                    Exemplos: https://rapnettelecomunicacoes.net.br/admin ou http://172.16.123.6/admin
+                    Exemplos: https://seu-dominio.com.br/admin ou http://seu-servidor/admin
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button onclick="salvarUrl()" style="
