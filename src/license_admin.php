@@ -7,6 +7,10 @@
 
 // Headers para desabilitar cache
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+header('Content-Type: text/html; charset=utf-8');
 header('Pragma: no-cache');
 header('Expires: 0');
 header('Content-Type: text/html; charset=utf-8');
@@ -858,8 +862,7 @@ $status_licenca = $license->getLicenseStatus();
                 </div>
             </div>
         </div>
-    </div>
-    
+
     <script>
         window.switchTab = function(tabName) {
             // Esconder todas as abas
@@ -925,6 +928,7 @@ $status_licenca = $license->getLicenseStatus();
                 }
             }
         });
+    </script>
     </script>
 </body>
 </html>
