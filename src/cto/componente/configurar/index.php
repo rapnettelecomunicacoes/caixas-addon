@@ -63,6 +63,11 @@ if (file_exists($addon_base . '/src/cto/database/index.hhvm')) {
     include_once $addon_base . '/src/cto/database/index.php';
 }
 
+// Incluir configuração de APIs
+if (file_exists($addon_base . '/src/cto/config/api.php')) {
+    include_once $addon_base . '/src/cto/config/api.php';
+}
+
 // Incluir modelos
 if (file_exists($addon_base . '/src/cto/models/client.hhvm')) {
     include_once $addon_base . '/src/cto/models/client.hhvm';
