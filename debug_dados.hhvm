@@ -1,0 +1,82 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// === USAR CAMINHO ABSOLUTO ===
+$addon_base = '/opt/mk-auth/admin/addons/caixas';
+
+echo "<h2>Addon Base: $addon_base</h2>";
+
+// Verificar se os arquivos existem
+$db_config = $addon_base . '/src/cto/config/database.hhvm';
+$db_index = $addon_base . '/src/cto/database/index.hhvm';
+$models = $addon_base . '/src/cto/models/client.hhvm';
+
+echo "<h3>Arquivos:</h3>";
+echo "Config: " . (file_exists($db_config) ? "✓ SIM" : "✗ NAO") . " ($db_config)<br>";
+echo "Index: " . (file_exists($db_index) ? "✓ SIM" : "✗ NAO") . " ($db_index)<br>";
+echo "Models: " . (file_exists($models) ? "✓ SIM" : "✗ NAO") . " ($models)<br>";
+
+// === INCLUIR ARQUIVOS NECESSÁRIOS ===
+include_once $db_config;
+include_once $db_index;
+include_once $models;
+
+if (!isset($table_name)) {
+    $table_name = 'mp_caixa';
+}
+
+echo "<h3>Conexão: " . (isset($connection) ? "✓ SIM" : "✗ NAO") . "</h3>";
+
+// Verificar se tabela existe
+$resultTabelaExiste = verificaTabelaExiste($connection, $table_name);
+echo "<h3>Tabela '$table_name' existe? " . ($resultTabelaExiste ? "✓ SIM" : "✗ NAO") . "</h3>";
+
+if (!$resultTabelaExiste) {
+    echo "<p>Criando tabela...</p>";
+    criarTabelaMp_Caixas($connection, $table_name);
+}
+
+// Ver estrutura da tabela
+echo "<h3>Campos da tabela:</h3>";
+$desc = mysqli_query($connection, "DESC $table_name");
+if ($desc) {
+    echo "<table border='1' cellpadding='5'><tr><th>Field</th><th>Type</th><th>Null</th><th>Key</th></tr>";
+    while ($row = mysqli_fetch_assoc($desc)) {
+        echo "<tr><td>{$row['Field']}</td><td>{$row['Type']}</td><td>{$row['Null']}</td><td>{$row['Key']}</td></tr>";
+    }
+    echo "</table>";
+}
+
+// Ver dados
+echo "<h3>Dados da tabela:</h3>";
+$resultado = mysqli_query($connection, "SELECT * FROM $table_name LIMIT 10");
+if ($resultado && mysqli_num_rows($resultado) > 0) {
+    echo "<p><strong>Total de registros:</strong> " . mysqli_num_rows($resultado) . "</p>";
+    echo "<table border='1' cellpadding='5' style='margin: 20px 0; width: 100%;'>";
+    
+    // Header
+    $row = mysqli_fetch_assoc($resultado);
+    echo "<tr style='background: #f0f0f0;'>";
+    foreach ($row as $key => $value) {
+        echo "<th>$key</th>";
+    }
+    echo "</tr>";
+    
+    // Reset e mostrar dados
+    mysqli_data_seek($resultado, 0);
+    $i = 0;
+    while ($row = mysqli_fetch_assoc($resultado)) {
+        $i++;
+        echo "<tr style='background: " . ($i % 2 ? '#fff' : '#f9f9f9') . ";'>";
+        foreach ($row as $key => $value) {
+            $display = htmlspecialchars($value ?? 'NULL');
+            echo "<td>" . (strlen($display) > 100 ? substr($display, 0, 100) . "..." : $display) . "</td>";
+        }
+        echo "</tr>";
+    }
+    echo "</table>";
+} else {
+    echo "<p style='color: red;'>Nenhum dado encontrado na tabela</p>";
+}
+?>

@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar CTO</title>
+    <script>
+        // Passar a chave do Google Maps do PHP para JavaScript
+        window.keyGoogleMaps = '<?php echo isset($keyGoogleMaps) ? $keyGoogleMaps : ''; ?>';
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15);
+            margin-bottom: 25px;
+        }
+
+        .header h2 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .content-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 25px;
+        }
+
+        .form-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+            max-height: 800px;
+            overflow-y: auto;
+        }
+
+        .form-section::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .form-section::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .form-section::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .form-section::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        .form-section h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group input:disabled {
+            background-color: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .clients-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .clients-section h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+            font-weight: 600;
+        }
+
+        .search-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .search-input {
+            position: relative;
+        }
+
+        .search-input input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .clients-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .client-list {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fc 0%, #fafbfc 100%);
+            display: flex;
+            flex-direction: column;
+            max-height: 600px;
+        }
+
+        .client-list h4 {
+            color: #333;
+            font-size: 15px;
+            margin-bottom: 18px;
+            font-weight: 700;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .client-items-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .client-items-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .client-items-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .client-items-container::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .client-items-container::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        .client-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .client-item:hover {
+            background: #f0f1f9;
+            border-color: #667eea;
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+        }
+
+        .client-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .client-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+
+        .client-id {
+            color: #999;
+            font-size: 11px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 11px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-remove {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-remove:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .map-button {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .map-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
+        .counter-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        @media (max-width: 1200px) {
+            .content-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .clients-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-box {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 0;
+            }
+
+            .form-section,
+            .clients-section {
+                padding: 20px;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .header h2 {
+                font-size: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                flex: 1;
+            }
+
+            .clients-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .client-list {
+                max-height: 400px;
+            }
+
+            .action-buttons {
+                margin-left: 0;
+                width: 100%;
+                flex-direction: column;
+                margin-top: 8px;
+            }
+
+            .client-item {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h2>📍 Editar Caixa de Terminação Óptica</h2>
+                <p><?php echo isset($textoSubTitulo) ? htmlspecialchars($textoSubTitulo) : 'Edite os dados da CTO'; ?></p>
+            </div>
+            <button type="button" onclick="window.location.href='?_route=inicio'" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow=''">
+                ← 📋 Voltar
+            </button>
+        </div>
+    </div>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <!-- Form Section -->
+        <div class="form-section">
+            <h3>📋 Dados da CTO</h3>
+            <?php include "editar.caixa.view.hhvm"; ?>
+        </div>
+
+        <!-- Clients Management Section -->
+        <div class="clients-section">
+            <h3>👥 Gerenciar Clientes</h3>
+            
+            <!-- Search Box -->
+            <div class="search-box">
+                <div class="search-input">
+                    <input type="text" id="searchDisponivel" placeholder="🔍 Buscar cliente disponível..." onkeyup="filtrarClientes('disponivel')">
+                </div>
+                <div class="search-input">
+                    <input type="text" id="searchAtribuido" placeholder="�� Buscar cliente atribuído..." onkeyup="filtrarClientes('atribuido')">
+                </div>
+            </div>
+
+            <div class="clients-grid">
+                <!-- Clientes Disponíveis -->
+                <div class="client-list">
+                    <h4>🆓 Disponíveis <span class="counter-badge" id="countDisponivel">0</span></h4>
+                    <div class="client-items-container">
+                        <div id="clientesDisponiveis">
+                            <?php
+                            if (isset($todosClientes) && $todosClientes && mysqli_num_rows($todosClientes) > 0) {
+                                mysqli_data_seek($todosClientes, 0);
+                                $clientesAtribuidos = isset($clientesCadastrados) ? $clientesCadastrados : [];
+                                $clientesAdicionais = isset($adicionalCadastrados) ? $adicionalCadastrados : [];
+                                $atribuidos = array_merge($clientesAtribuidos, $clientesAdicionais);
+                                
+                                $temDisponivel = false;
+                                $countDisp = 0;
+                                while ($cliente = mysqli_fetch_assoc($todosClientes)) {
+                                    if (!in_array($cliente['id'], $atribuidos)) {
+                                        $temDisponivel = true;
+                                        $countDisp++;
+                                        echo '<div class="client-item" data-search="' . strtolower($cliente['nome'] ?? '') . '">';
+                                        echo '  <div class="client-info">';
+                                        echo '    <div class="client-name">' . htmlspecialchars($cliente['nome'] ?? '') . '</div>';
+                                        echo '    <div class="client-id">ID: ' . htmlspecialchars($cliente['id'] ?? '') . '</div>';
+                                        echo '  </div>';
+                                        echo '  <div class="action-buttons">';
+                                        echo '    <button type="button" class="btn-small btn-add" onclick="atribuirCliente(' . $cliente['id'] . ', \'' . addslashes($cliente['nome'] ?? '') . '\')">➕ Atribuir</button>';
+                                        echo '  </div>';
+                                        echo '</div>';
+                                    }
+                                }
+                                
+                                if (!$temDisponivel) {
+                                    echo '<div class="empty-state">';
+                                    echo '  <div class="empty-state-icon">✅</div>';
+                                    echo '  <p>Todos os clientes atribuídos</p>';
+                                    echo '</div>';
+                                }
+                                
+                                echo '<script>document.getElementById("countDisponivel").textContent = ' . $countDisp . ';</script>';
+                            } else {
+                                echo '<div class="empty-state">';
+                                echo '  <div class="empty-state-icon">📭</div>';
+                                echo '  <p>Nenhum cliente cadastrado</p>';
+                                echo '</div>';
+                            }
+                            ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clientes Atribuídos -->
+                <div class="client-list">
+                    <h4>✅ Atribuídos <span class="counter-badge" id="countAtribuido">0</span></h4>
+                    <div class="client-items-container">
+                        <div id="clientesAtribuidos">
+                            <?php
+                            if (isset($dadosClienteEditar) && $dadosClienteEditar && mysqli_num_rows($dadosClienteEditar) > 0) {
+                                mysqli_data_seek($dadosClienteEditar, 0);
+                                $countAtr = 0;
+                                while ($cliente = mysqli_fetch_assoc($dadosClienteEditar)) {
+                                    $countAtr++;
+                                    echo '<div class="client-item" data-search="' . strtolower($cliente['nome'] ?? '') . '">';
+                                    echo '  <div class="client-info">';
+                                    echo '    <div class="client-name">' . htmlspecialchars($cliente['nome'] ?? '') . '</div>';
+                                    echo '    <div class="client-id">ID: ' . htmlspecialchars($cliente['id'] ?? '') . '</div>';
+                                    echo '  </div>';
+                                    echo '  <div class="action-buttons">';
+                                    echo '    <button type="button" class="btn-small btn-remove" onclick="removerCliente(' . $cliente['id'] . ', \'' . addslashes($cliente['nome'] ?? '') . '\')">🗑️ Remover</button>';
+                                    echo '  </div>';
+                                    echo '</div>';
+                                }
+                                echo '<script>document.getElementById("countAtribuido").textContent = ' . $countAtr . ';</script>';
+                            } else {
+                                echo '<div class="empty-state">';
+                                echo '  <div class="empty-state-icon">📭</div>';
+                                echo '  <p>Nenhum cliente atribuído</p>';
+                                echo '</div>';
+                            }
+                            ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function mapa_get_individual(cplatitude, cplongitude, servidor, latitudePadrao, longitudePadrao) {
+    var width = (screen.availWidth - 100);
+    var height = (screen.availHeight - 100);
+    var latitudeLocal = document.getElementById("LATITUDE");
+    var longitudeLocal = document.getElementById("LONGITUDE");
+
+    if (latitudeLocal.value) {
+        latitudePadrao = latitudeLocal.value;
+    }
+
+    if (longitudeLocal.value) {
+        longitudePadrao = longitudeLocal.value;
+    }
+
+    window.open("src/cto/componente/maps/maps." + servidor + ".get.hhvm?cplatitude=" + cplatitude + "&cplongitude=" + cplongitude + "&latitudePadrao=" + latitudePadrao + "&longitudePadrao=" + longitudePadrao, "mpg_popup", "toolbar=0, location=0, directories=0, status=1, menubar=0, scrollbars=1, resizable=0, screenX=0, screenY=0, left=0, top=0, width=" + width + ", height=" + height);
+    return true;
+}
+
+function filtrarClientes(tipo) {
+    const input = tipo === 'disponivel' ? document.getElementById('searchDisponivel') : document.getElementById('searchAtribuido');
+    const container = tipo === 'disponivel' ? document.getElementById('clientesDisponiveis') : document.getElementById('clientesAtribuidos');
+    const filtro = input.value.toLowerCase();
+    const items = container.querySelectorAll('.client-item');
+    
+    let visivel = 0;
+    items.forEach(item => {
+        const search = item.getAttribute('data-search');
+        if (search.includes(filtro)) {
+            item.style.display = '';
+            visivel++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    if (visivel === 0 && filtro !== '') {
+        let emptyFound = container.querySelector('.empty-state');
+        if (!emptyFound) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><p>Nenhum cliente encontrado</p></div>';
+        }
+    }
+}
+
+function atribuirCliente(clienteId, clienteNome) {
+    if (confirm('Atribuir cliente "' + clienteNome + '" a esta CTO?')) {
+        const formData = new FormData();
+        formData.append('_tipoAcao', 'adc');
+        formData.append('idClienteCaixa', clienteId);
+        formData.append('_route', 'editar');
+        formData.append('id', '<?php echo isset($ID) ? $ID : ""; ?>');
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            location.reload();
+        }).catch(error => {
+            alert('Erro ao atribuir cliente');
+        });
+    }
+}
+
+function removerCliente(clienteId, clienteNome) {
+    if (confirm('Remover cliente "' + clienteNome + '" desta CTO?')) {
+        const formData = new FormData();
+        formData.append('_tipoAcao', 'exc');
+        formData.append('idClienteCaixa', clienteId);
+        formData.append('_route', 'editar');
+        formData.append('id', '<?php echo isset($ID) ? $ID : ""; ?>');
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            location.reload();
+        }).catch(error => {
+            alert('Erro ao remover cliente');
+        });
+    }
+}
+
+// Modal para buscar endereço via geocodificação com Google Maps
+function abrirBuscaEndereco() {
+    // Carregar Google Maps se ainda não estiver carregado
+    if (!window.google || !window.google.maps) {
+        const script = document.createElement('script');
+        const apiKey = window.keyGoogleMaps || '';
+        
+        if (!apiKey) {
+            alert('⚠️ Chave da API do Google Maps não configurada. Por favor, configure em Configurações > Google Maps API');
+            return;
+        }
+        
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&language=pt-BR`;
+        script.onload = () => criarModalMapa();
+        script.onerror = () => {
+            alert('❌ Erro ao carregar Google Maps. Verifique a chave da API.');
+        };
+        document.head.appendChild(script);
+    } else {
+        criarModalMapa();
+    }
+}
+
+function criarModalMapa() {
+    const modal = document.createElement('div');
+    modal.id = 'modalBuscaEndereco';
+    modal.style.cssText = `
+        display: flex;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        align-items: center;
+        justify-content: center;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            width: 95%;
+            max-width: 900px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        ">
+            <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">🗺️ Buscar Endereço no Mapa</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; flex: 0 0 auto;">
+                <div>
+                    <p style="color: #666; font-size: 13px; margin: 0 0 8px 0;">Digite o endereço:</p>
+                    <input 
+                        type="text" 
+                        id="campoBuscaEndereco" 
+                        placeholder="Ex: Rua Padre Nestor, 472 - Luzia, Aracaju - SE" 
+                        style="
+                            width: 100%;
+                            padding: 10px 12px;
+                            border: 2px solid #e5e7eb;
+                            border-radius: 8px;
+                            font-size: 13px;
+                            box-sizing: border-box;
+                            font-family: inherit;
+                        "
+                        onkeypress="if(event.key==='Enter') buscarEndereco(event)"
+                    />
+                </div>
+                <div style="display: flex; gap: 8px; align-items: flex-end;">
+                    <button type="button" onclick="buscarEndereco()" style="
+                        flex: 1;
+                        padding: 10px 15px;
+                        border: none;
+                        border-radius: 6px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        cursor: pointer;
+                        font-weight: 600;
+                        transition: all 0.2s ease;
+                        font-size: 13px;
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow=''">
+                        🔍 Buscar
+                    </button>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 300px; gap: 15px; flex: 1; min-height: 0;">
+                <!-- MAPA GOOGLE -->
+                <div id="mapaBuscaEndereco" style="
+                    border-radius: 8px;
+                    border: 2px solid #e5e7eb;
+                    background: #f9f9f9;
+                    position: relative;
+                "></div>
+                
+                <!-- PAINEL LATERAL -->
+                <div style="
+                    display: flex;
+                    flex-direction: column;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 8px;
+                    background: #f9f9f9;
+                    overflow: hidden;
+                ">
+                    <div style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #333; font-size: 13px;">
+                        📍 Resultados
+                    </div>
+                    <div id="resultadoBusca" style="
+                        flex: 1;
+                        overflow-y: auto;
+                        padding: 12px;
+                    "></div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; flex: 0 0 auto;">
+                <button type="button" onclick="
+                    const modal = document.getElementById('modalBuscaEndereco');
+                    if (modal) {
+                        modal.remove();
+                        document.body.style.overflow = 'auto';
+                    }
+                " style="
+                    padding: 10px 20px;
+                    border: none;
+                    border-radius: 6px;
+                    background: #f0f0f0;
+                    color: #333;
+                    cursor: pointer;
+                    font-weight: 600;
+                    transition: all 0.2s ease;
+                " onmouseover="this.style.background='#e0e0e0'" onmouseout="this.style.background='#f0f0f0'">
+                    Cancelar
+                </button>
+                <button type="button" id="btnConfirmarEndereco" onclick="
+                    const modal = document.getElementById('modalBuscaEndereco');
+                    if (modal) {
+                        modal.remove();
+                        document.body.style.overflow = 'auto';
+                    }
+                " style="
+                    padding: 10px 20px;
+                    border: none;
+                    border-radius: 6px;
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                    cursor: pointer;
+                    font-weight: 600;
+                    transition: all 0.2s ease;
+                    display: none;
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(16, 185, 129, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow=''">
+                    ✓ Confirmar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Bloquear scroll da página quando modal abre, mas permitir scroll no mapa
+    document.body.style.overflow = 'hidden';
+    
+    // Permitir wheel/scroll apenas sobre o mapa
+    const mapContainer = document.getElementById('mapaBuscaEndereco');
+    
+    // Função para bloquear scroll fora do mapa
+    const preventDefault = (e) => {
+        // Permitir scroll apenas se estiver sobre o mapa
+        if (mapContainer && !mapContainer.contains(e.target)) {
+            e.preventDefault();
+        }
+    };
+    
+    // Bloquear scroll da página
+    document.addEventListener('wheel', preventDefault, { passive: false });
+    
+    // Permitir fechar o modal clicando fora dele
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+            // Restaurar scroll da página
+            document.body.style.overflow = 'auto';
+            document.removeEventListener('wheel', preventDefault);
+        }
+    });
+    
+    // Restaurar scroll ao fechar o modal clicando no botão Cancelar
+    const btnCancelar = modal.querySelector('button:first-of-type');
+    btnCancelar.addEventListener('click', () => {
+        document.body.style.overflow = 'auto';
+        document.removeEventListener('wheel', preventDefault);
+    });
+    
+    // Inicializar mapa Google Maps
+    setTimeout(() => {
+        const aracaju = { lat: -10.2105, lng: -36.8044 };
+        
+        const mapa = new google.maps.Map(document.getElementById('mapaBuscaEndereco'), {
+            zoom: 13,
+            center: aracaju,
+            mapTypeControl: true,
+            streetViewControl: false,
+            fullscreenControl: true
+        });
+        
+        let marcador = null;
+        
+        // Armazenar mapa e marcador globalmente para usar em outras funções
+        window.mapaGeocodificacao = {
+            mapa: mapa,
+            marcador: marcador,
+            geocoder: new google.maps.Geocoder()
+        };
+        
+        // Permitir clique no mapa para selecionar coordenadas
+        mapa.addListener('click', (e) => {
+            const lat = e.latLng.lat().toFixed(6);
+            const lng = e.latLng.lng().toFixed(6);
+            
+            if (marcador) {
+                marcador.setPosition(e.latLng);
+            } else {
+                marcador = new google.maps.Marker({
+                    position: e.latLng,
+                    map: mapa
+                });
+                window.mapaGeocodificacao.marcador = marcador;
+            }
+            
+            // Atualizar campos
+            document.getElementById('LATITUDE').value = lat;
+            document.getElementById('LONGITUDE').value = lng;
+            
+            // Fazer reverse geocoding para obter o endereço
+            const geocoder = window.mapaGeocodificacao.geocoder;
+            geocoder.geocode({ location: e.latLng }, (results, status) => {
+                if (status === 'OK' && results.length > 0) {
+                    const address = results[0].formatted_address;
+                    document.getElementById('ENDERECO').value = address;
+                    
+                    // Mostrar botão Confirmar (Mapa - Reverse Geocoding)
+                    const btnConfirmar = document.getElementById('btnConfirmarEndereco');
+                    if (btnConfirmar) {
+                        btnConfirmar.style.display = 'block';
+                    }
+                    
+                    document.getElementById('resultadoBusca').innerHTML = `
+                        <div style="padding: 8px; background: #e8f5e9; border-radius: 6px; border-left: 4px solid #4caf50;">
+                            <div style="font-weight: 600; color: #2e7d32; font-size: 13px;">✅ Localização Selecionada</div>
+                            <div style="color: #555; font-size: 12px; margin-top: 6px;">
+                                <strong>Endereço:</strong><br>${address}<br><br>
+                                <strong>Coordenadas:</strong><br>
+                                Lat: ${lat} | Lon: ${lng}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('resultadoBusca').innerHTML = `
+                        <div style="padding: 8px; background: #e8f5e9; border-radius: 6px; border-left: 4px solid #4caf50;">
+                            <div style="font-weight: 600; color: #2e7d32; font-size: 13px;">✅ Coordenadas Selecionadas</div>
+                            <div style="color: #555; font-size: 12px; margin-top: 6px;">
+                                Latitude: <strong>${lat}</strong><br>
+                                Longitude: <strong>${lng}</strong>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        });
+    }, 100);
+    
+    const inputBusca = document.getElementById('campoBuscaEndereco');
+    inputBusca.focus();
+    
+    // Busca automática enquanto digita (com debounce)
+    let timeoutBusca = null;
+    inputBusca.addEventListener('input', () => {
+        clearTimeout(timeoutBusca);
+        const texto = inputBusca.value.trim();
+        
+        if (texto.length > 3) { // Apenas busca com mais de 3 caracteres
+            timeoutBusca = setTimeout(() => {
+                buscarEndereco();
+            }, 700); // Aguarda 700ms após parar de digitar
+        }
+    });
+}
+
+function buscarEndereco() {
+    const endereco = document.getElementById('campoBuscaEndereco').value.trim();
+    
+    if (!endereco) {
+        alert('Por favor, digite um endereço');
+        return;
+    }
+    
+    const resultadoBusca = document.getElementById('resultadoBusca');
+    resultadoBusca.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">🔍 Buscando...</p>';
+    
+    // Usar Google Geocoder se disponível, caso contrário usar Nominatim
+    if (window.mapaGeocodificacao && window.mapaGeocodificacao.geocoder) {
+        // Google Geocoder
+        const geocoder = window.mapaGeocodificacao.geocoder;
+        geocoder.geocode({ address: endereco }, (results, status) => {
+            if (status === 'OK' && results.length > 0) {
+                resultadoBusca.innerHTML = '<p style="color: #666; font-size: 12px; margin-bottom: 10px;"><strong>Clique para selecionar:</strong></p>';
+                
+                results.slice(0, 10).forEach((result) => {
+                    const div = document.createElement('div');
+                    const lat = result.geometry.location.lat().toFixed(6);
+                    const lng = result.geometry.location.lng().toFixed(6);
+                    
+                    div.style.cssText = `
+                        padding: 8px 10px;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 6px;
+                        margin-bottom: 6px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        background: #fafbfc;
+                        font-size: 12px;
+                    `;
+                    div.innerHTML = `
+                        <div style="font-weight: 600; color: #333; margin-bottom: 3px;">
+                            ${result.formatted_address}
+                        </div>
+                        <div style="color: #999; font-size: 11px;">
+                            Lat: ${lat} | Lon: ${lng}
+                        </div>
+                    `;
+                    
+                    div.onmouseover = () => {
+                        div.style.background = '#f0f1f9';
+                        div.style.borderColor = '#667eea';
+                    };
+                    
+                    div.onmouseout = () => {
+                        div.style.background = '#fafbfc';
+                        div.style.borderColor = '#e5e7eb';
+                    };
+                    
+                    div.onclick = () => {
+                        // Atualizar campos de coordenadas
+                        document.getElementById('LATITUDE').value = lat;
+                        document.getElementById('LONGITUDE').value = lng;
+                        
+                        // Atualizar campo de endereço
+                        document.getElementById('ENDERECO').value = result.formatted_address;
+                        
+                        // Mover mapa para a localização e adicionar marcador
+                        if (window.mapaGeocodificacao && window.mapaGeocodificacao.mapa) {
+                            const mapa = window.mapaGeocodificacao.mapa;
+                            mapa.setCenter(result.geometry.location);
+                            mapa.setZoom(15);
+                            
+                            if (window.mapaGeocodificacao.marcador) {
+                                window.mapaGeocodificacao.marcador.setPosition(result.geometry.location);
+                            } else {
+                                window.mapaGeocodificacao.marcador = new google.maps.Marker({
+                                    position: result.geometry.location,
+                                    map: mapa
+                                });
+                            }
+                        }
+                        
+                        // Atualizar painel de resultado
+                        div.style.background = '#e8f5e9';
+                        div.style.borderColor = '#4caf50';
+                        div.style.borderWidth = '2px';
+                        div.style.fontWeight = '600';
+                        div.style.color = '#2e7d32';
+                        
+                        // Mostrar botão Confirmar (Google Maps)
+                        const btnConfirmar = document.getElementById('btnConfirmarEndereco');
+                        if (btnConfirmar) {
+                            btnConfirmar.style.display = 'block';
+                        }
+                    };
+                    
+                    resultadoBusca.appendChild(div);
+                });
+            } else {
+                resultadoBusca.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;">❌ Nenhum resultado encontrado</p>';
+            }
+        });
+    } else {
+        // Fallback para Nominatim
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    resultadoBusca.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;">❌ Nenhum resultado encontrado</p>';
+                    return;
+                }
+                
+                // Mostrar resultados
+                resultadoBusca.innerHTML = '<p style="color: #666; font-size: 12px; margin-bottom: 10px;"><strong>Clique para selecionar:</strong></p>';
+                
+                data.slice(0, 10).forEach((resultado) => {
+                    const div = document.createElement('div');
+                    div.style.cssText = `
+                        padding: 8px 10px;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 6px;
+                        margin-bottom: 6px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        background: #fafbfc;
+                        font-size: 12px;
+                    `;
+                    div.innerHTML = `
+                        <div style="font-weight: 600; color: #333; margin-bottom: 3px;">
+                            ${resultado.display_name}
+                        </div>
+                        <div style="color: #999; font-size: 11px;">
+                            Lat: ${parseFloat(resultado.lat).toFixed(6)} | Lon: ${parseFloat(resultado.lon).toFixed(6)}
+                        </div>
+                    `;
+                    
+                    div.onmouseover = () => {
+                        div.style.background = '#f0f1f9';
+                        div.style.borderColor = '#667eea';
+                    };
+                    
+                    div.onmouseout = () => {
+                        div.style.background = '#fafbfc';
+                        div.style.borderColor = '#e5e7eb';
+                    };
+                    
+                    div.onclick = () => {
+                        const lat = parseFloat(resultado.lat);
+                        const lng = parseFloat(resultado.lon);
+                        
+                        // Atualizar campos
+                        document.getElementById('LATITUDE').value = lat.toFixed(6);
+                        document.getElementById('LONGITUDE').value = lng.toFixed(6);
+                        
+                        // Atualizar painel de resultado
+                        div.style.background = '#e8f5e9';
+                        div.style.borderColor = '#4caf50';
+                        div.style.borderWidth = '2px';
+                        div.style.fontWeight = '600';
+                        div.style.color = '#2e7d32';
+                    };
+                    
+                    resultadoBusca.appendChild(div);
+                });
+            })
+            .catch(error => {
+                resultadoBusca.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;">❌ Erro ao buscar endereço</p>';
+                console.error('Erro:', error);
+            });
+    }
+}
+
+function mapa_get_individual(cplatitude, cplongitude, servidor, latitudePadrao, longitudePadrao) {
+    abrirBuscaEndereco();
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,134 @@
+<?php
+    // A sessão já foi iniciada no controller.hhvm
+?>
+<div>
+    <table border="0" width="100%" align="center" >
+        <tbody>
+            <tr>
+                <td height="30" colspan="2"><strong> Clientes Adicionais </strong></td>
+            </tr>
+            <tr>
+                <td height="3" colspan="2" bgcolor="#f2f2f2"></td>
+            </tr>
+
+            <tr>
+                <td colspan="2"></td>
+            </tr>
+            <tr valign="top">
+                <td>
+                    <select name="idAdicionalCaixa" id="idAdicionalCaixa" form="formAdicionalAdd"  style="min-width: 450px">
+                        <?php  
+                        if ($dadosAdicional && mysqli_num_rows($dadosAdicional) > 0) {
+                            while ($row = mysqli_fetch_array($dadosAdicional)){
+                                if (!array_search($row['id'], $adicionalCadastrados)){
+                                    echo("<option value=".htmlspecialchars($row['id'] ?? '', ENT_QUOTES, 'UTF-8').">".htmlspecialchars($row['nome'] ?? '', ENT_QUOTES, 'UTF-8')."</option>");   
+                                }
+                            }
+                        }
+                        ?>
+                    </select>
+                </td>
+                <td width="1%">
+                    <a title="Inserir Cliente Adicional" id="run_adicionar_a"><span class="icon has-text-success"><i class="fa fa-plus fa-2x"></i></span></a>
+                </td>
+                
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<form role="form" id="formAdicionalAdd" action="?" method="post" autocomplete="off">
+    <input type="hidden" name="_tipoAcao" id="_tipoAcao" value="adca" />
+    <input type="hidden" name="_route" id="_route" value="editar" />
+    <input type="hidden" name="ID" id="ID" value="<?= htmlspecialchars($ID ?? '', ENT_QUOTES, 'UTF-8') ?>" />
+    <input type="hidden" name="nomeCaixaEditar" id="nomeCaixaEditar" value="<?= htmlspecialchars($nomeCaixaEditar ?? '', ENT_QUOTES, 'UTF-8') ?>" />
+</form>
+
+<br>
+
+<div style="overflow-y: auto; max-height:300px;">
+    <table width="100%" border="0" align="center" cellspacing="0">
+        <thead>
+            <tr class="tab_th">
+                <td >Clientes Adicionais Ativos</td>
+                <td >Porta</td>
+                <td >A&ccedil;&atilde;o</td>
+            </tr>
+        </thead>
+        <tbody style="overflow-y: auto; max-height:350px;">
+            <?php
+                $numeroLinha = 0;
+                if ($dadosAdicionalEditar && mysqli_num_rows($dadosAdicionalEditar) > 0) {
+                    while ($row = mysqli_fetch_array($dadosAdicionalEditar)) { 
+                        
+                        $numeroLinha++;
+                        
+                        echo '<tr style=" '.((($numeroLinha % 2) == 0 ? "background-color: #f5f5f5" : "background-color: #fff")).' ">';
+                            
+                            echo '<td style="width: 370px">' . htmlspecialchars($row['nome'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>';
+                            echo '<td><input type="text" form="formEditarAdicional'.htmlspecialchars($row["id"] ?? '', ENT_QUOTES, 'UTF-8').'" name="porta_splitter" id="porta_splitter" value="'.htmlspecialchars($row['porta_splitter'] ?? '', ENT_QUOTES, 'UTF-8').'" style="width: 50px" /></td>'; 
+                            
+                            
+                            echo '<td style=" word-break:break-all; ">';  
+                            echo '<a href="#" name="'.htmlspecialchars($row["nome"] ?? '', ENT_QUOTES, 'UTF-8').'" id="'.htmlspecialchars($row["id"] ?? '', ENT_QUOTES, 'UTF-8').'" class="linkpeq salvar_a"><span class="icon has-text-save"><i class="fa fa-save fa-2x"></i></span></a>';                  
+                            echo '<a href="#" name="'.htmlspecialchars($row["nome"] ?? '', ENT_QUOTES, 'UTF-8').'" id="'.htmlspecialchars($row["id"] ?? '', ENT_QUOTES, 'UTF-8').'" class="linkpeq excluir_a"><span class="icon has-text-danger"><i class="fa fa-trash fa-2x"></i></span></a>';
+                            echo '</td>';
+                            
+                        echo '</tr>';       
+
+                    echo '<form role="form" id="formExcluirAdicional'.htmlspecialchars($row["id"] ?? '', ENT_QUOTES, 'UTF-8').'" action="?" method="post" autocomplete="off">';
+                    echo '<input type="hidden" name="_tipoAcao" id="_tipoAcao" value="exca" />';
+                    echo '<input type="hidden" name="_route" id="_route" value="editar" />';
+                    echo '<input type="hidden" name="idAdicionalCaixa" id="idAdicionalCaixa" value="'.htmlspecialchars($row["id"] ?? '', ENT_QUOTES, 'UTF-8').'" />';
+                    echo '<input type="hidden" name="ID" id="ID" value="'.htmlspecialchars($ID ?? '', ENT_QUOTES, 'UTF-8').'" />';
+                    echo '<input type="hidden" name="nomeCaixaEditar" id="nomeCaixaEditar" value="'.htmlspecialchars($nomeCaixaEditar ?? '', ENT_QUOTES, 'UTF-8').'" />';
+                    echo '</form>';
+                    
+                    echo '<form role="form" id="formEditarAdicional'.htmlspecialchars($row["id"] ?? '', ENT_QUOTES, 'UTF-8').'" name="formEditarAdicional'.htmlspecialchars($row["id"] ?? '', ENT_QUOTES, 'UTF-8').'" action="?" method="post" autocomplete="off">';
+                    echo '<input type="hidden" name="_tipoAcao" id="_tipoAcao" value="edca" />';
+                    echo '<input type="hidden" name="_route" id="_route" value="editar" />';
+                    echo '<input type="hidden" name="idAdicionalCaixa" id="idAdicionalCaixa" value="'.htmlspecialchars($row["id"] ?? '', ENT_QUOTES, 'UTF-8').'" />';
+                    echo '<input type="hidden" name="ID" id="ID" value="'.htmlspecialchars($ID ?? '', ENT_QUOTES, 'UTF-8').'" />';
+                    echo '<input type="hidden" name="nomeCaixaEditar" id="nomeCaixaEditar" value="'.htmlspecialchars($nomeCaixaEditar ?? '', ENT_QUOTES, 'UTF-8').'" />';
+                    echo '</form>';
+                                    
+                    } // Fecha while
+                } // Fecha if
+            ?>
+        </tbody>
+    </table>
+</div>
+
+
+<script>
+    $('input[type=text]').on('keydown', function(e) {
+        if (e.which == 13) {
+            e.preventDefault();
+        }
+    });
+
+    /*FILTRO DE GRID*/
+	$(document).ready(function(){
+
+        /*ADICIONAR UM CAIXA*/
+      $("#run_adicionar_a").on("click", function() {       
+        document.getElementById('formAdicionalAdd').submit(); 
+      });
+
+
+      /*DELETAR UM CLIENTE*/
+      $(".excluir_a").on("click", function() {
+          if (window.confirm("Voce quer realmente excluir o cliente adicional " + this.name +  "?")){
+            document.getElementById('formExcluirAdicional' + this.id ).submit(); 
+          }         
+	  });
+    
+   /*EDITAR UM CLIENTE*/
+   $(".salvar_a").on("click", function() {
+          if (window.confirm("Confirma a alteracao da porta do cliente " + this.name +  "?")){
+            document.getElementById('formEditarAdicional' + this.id ).submit(); 
+          }         
+	  });
+   
+	});
+</script>   

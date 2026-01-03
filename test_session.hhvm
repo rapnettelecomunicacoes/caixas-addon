@@ -1,0 +1,35 @@
+<?php
+// NÃO cria uma nova sessão, só verifica quais cookies existem
+echo "<h2>Cookies Disponíveis:</h2>";
+echo "<pre>";
+print_r($_COOKIE);
+echo "</pre>";
+
+// Tenta verificar qual é o MKASESSID
+if (isset($_COOKIE['MKASESSID'])) {
+    $sid = $_COOKIE['MKASESSID'];
+    echo "<h3>Session ID from cookie: $sid</h3>";
+    
+    $sess_file = "/var/tmp/sess_$sid";
+    if (file_exists($sess_file)) {
+        echo "<h3>Session file content:</h3>";
+        echo "<pre>";
+        echo file_get_contents($sess_file);
+        echo "</pre>";
+    } else {
+        echo "<h3>Session file NOT found at: $sess_file</h3>";
+    }
+}
+
+// Agora inicializa a sessão
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+echo "<h3>After session_start():</h3>";
+echo "Session ID: " . session_id() . "<br>";
+echo "\$_SESSION content:<br>";
+echo "<pre>";
+print_r($_SESSION);
+echo "</pre>";
+?>

@@ -1,0 +1,394 @@
+<?php
+	include('../../config/database.hhvm');
+    include('../../database/index.hhvm');
+    include('../../models/client.hhvm');
+	include "maps.controller.hhvm";
+
+
+	//Verifica Protocolo
+	if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+		$protocolo = 'https';
+	} else {
+		$protocolo = 'http';
+	}
+?>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<title>MAPA</title>
+
+<style type="text/css">
+	html {
+		height: 100%;
+	}
+
+	body {
+		height: 100%;
+		margin: 0;
+		padding: 0;
+	}
+
+	#mapa-mka {
+		height: 100%;
+		width: 100%;
+		width: 100%;
+	}
+
+	#floating-panel {
+		position: absolute;
+		top: 10px;
+		left: 42%;
+		z-index: 5;
+		background-color: #fff;
+		padding: 5px;
+		border: 1px solid #999;
+		text-align: center;
+		font-family: "Roboto", "sans-serif";
+		line-height: 30px;
+		padding-left: 10px;
+	}
+
+	.labels {
+		color: red;
+		background-color: white;
+		font-family: "Lucida Grande", "Arial", sans-serif;
+		font-size: 10px;
+		font-weight: bold;
+		text-align: center;
+		width: 60px;
+		border: 2px solid black;
+		white-space: nowrap;
+	}
+</style>
+<script defer src="<?= $protocolo ?>://maps.google.com/maps/api/js?key=<?= $key_googlemaps ?>&callback=initMap"></script>
+
+<script src="../../../../../../scripts/jquery.js"></script>
+<script src="../../../../../../scripts/jmaps.js"></script>
+<script type="text/javascript" charset="UTF-8" src="<?= $protocolo ?>://maps.google.com/maps-api-v3/api/js/42/5/intl/pt_br/common.js"></script>
+<script type="text/javascript" charset="UTF-8" src="<?= $protocolo ?>://maps.google.com/maps-api-v3/api/js/42/5/intl/pt_br/util.js"></script>
+<script type="text/javascript" charset="UTF-8" src="<?= $protocolo ?>://maps.google.com/maps-api-v3/api/js/42/5/intl/pt_br/map.js"></script>
+<script type="text/javascript" charset="UTF-8" src="<?= $protocolo ?>://maps.google.com/maps-api-v3/api/js/42/5/intl/pt_br/onion.js"></script>
+<meta id="dcngeagmmhegagicpcmpinaoklddcgon">
+<script type="text/javascript" charset="UTF-8" src="<?= $protocolo ?>://maps.google.com/maps-api-v3/api/js/42/5/intl/pt_br/marker.js"></script>
+<script type="text/javascript" charset="UTF-8" src="<?= $protocolo ?>://maps.google.com/maps-api-v3/api/js/42/5/intl/pt_br/controls.js"></script>
+
+<body>
+	<div id="carregando" style="position: absolute; display: none;">
+		<img src="../../../../../../img/mkload.gif">
+	</div>
+	<div id="mapa-mka" style="position: relative;"></div>
+	<input type="hidden" id="textoDuracao">
+	<input type="hidden" id="latPrincipal">
+	<input type="hidden" id="lngPrincipal">
+
+	<script>
+		var gmarkers = [];
+		var textoDistanciaGlogal = '';
+
+		var currentInfoWindow = null;
+
+		function initMap() {
+
+			const ativoUsarTrajeto = 1;
+
+			const directionsRenderer = new google.maps.DirectionsRenderer();
+			const directionsService = new google.maps.DirectionsService();
+
+			var latitude = '<?php echo $latitude ?>';
+			var longitude = '<?php echo $longitude ?>';
+			var enderecoCoordenadaNovo = '<?php echo $enderecoCoordenadaNovo ?>';
+
+			$.getJSON('maps.data.json.hhvm', {
+				caixas: '<?php echo (json_encode($arrayCaixas)) ?>',
+				idCliente: '<?php echo ($idCliente) ?>',
+				todosMarcados: '<?php echo ($todosMarcados) ?>',
+				tipo: 'pai'
+			}, function(data, status) {
+				if ((latitude == 0) && (longitude == 0) && (enderecoCoordenadaNovo != '')) {
+					$.getJSON('https://maps.googleapis.com/maps/api/geocode/json?', {
+						address: enderecoCoordenadaNovo,
+						key: '<?php echo ($key_googlemaps) ?>',
+					}, function(dataMap, status) {
+						map = new google.maps.Map(document.getElementById('mapa-mka'), {
+							center: new google.maps.LatLng(dataMap.results[0].geometry.location.lat, dataMap.results[0].geometry.location.lng),
+							zoom: 18
+						});
+
+						document.getElementById('latPrincipal').value = dataMap.results[0].geometry.location.lat;
+						document.getElementById('lngPrincipal').value = dataMap.results[0].geometry.location.lng;
+
+						addMarcadorNovoCliente(map, dataMap.results[0].geometry.location.lat, dataMap.results[0].geometry.location.lng);
+
+						jQuery.each(data.markers, function(i, marker) {
+							addMarcador(map, marker, directionsRenderer, directionsService);
+
+						});
+					});
+				}
+
+
+				if ((latitude != 0) && (longitude != 0)) {
+					map = new google.maps.Map(document.getElementById('mapa-mka'), {
+						center: new google.maps.LatLng(latitude, longitude),
+						zoom: data.markers[0].zoom
+					});
+
+					document.getElementById('latPrincipal').value = latitude;
+					document.getElementById('lngPrincipal').value = longitude;
+
+					addMarcadorNovoCliente(map, latitude, longitude);
+				} else {
+					map = new google.maps.Map(document.getElementById('mapa-mka'), {
+						center: new google.maps.LatLng(data.markers[0].latitudeInicial, data.markers[0].longitudeInicial),
+						zoom: data.markers[0].zoom
+					});
+					if ('<?php echo ($idCliente) ?>' != '') {
+						document.getElementById('latPrincipal').value = data.markers[0].latitudeInicial;
+						document.getElementById('lngPrincipal').value = data.markers[0].longitudeInicial;
+					}
+
+				}
+
+
+				jQuery.each(data.markers, function(i, marker) {
+					addMarcador(map, marker, directionsRenderer, directionsService);
+
+				});
+
+
+				jQuery("#carregando").hide();
+			});
+
+
+			function addMarcadorNovoCliente(map, latitude, longitude) {
+
+				var marker = new google.maps.Marker({
+					position: new google.maps.LatLng(latitude, longitude),
+					icon: {
+						url: "../../assets/point_casinha.png",
+						labelOrigin: new google.maps.Point(14, 15)
+					},
+					map: map
+				});
+
+				marker.infowindow = new google.maps.InfoWindow({
+					content: "<strong>Latitude:</strong> " + latitude + "<br><strong>Longitude:</strong> " + longitude
+				});
+
+				marker.addListener('click', function() {
+
+					if (currentInfoWindow === null) {
+						currentInfoWindow = marker;
+					} else {
+						currentInfoWindow.infowindow.close();
+						currentInfoWindow = marker;
+
+					}
+
+					marker.infowindow.open(map, marker);
+				});
+
+				return marker;
+			}
+
+			function addMarcador(map, dados, directionsRenderer, directionsService, buscaCliente = 1) {
+
+				var marker = new google.maps.Marker({
+					position: new google.maps.LatLng(dados.latitude, dados.longitude),
+					icon: {
+						url: "../../assets/" + dados.icone,
+						labelOrigin: new google.maps.Point(14, 15)
+					},
+					label: {
+						text: dados.label,
+						fontFamily: "'Roboto', Black 900 italic",
+						color: 'black',
+						fontSize: "16px",
+						class: "labels"
+					},
+					map: map
+				});
+
+
+
+				marker.addListener('click', function() {
+
+					if (buscaCliente == 1) {
+						deleteMarkers();
+						adicionarMarcadoresFilhos(map, dados.id, directionsRenderer, directionsService);
+					}
+
+
+					calculateAndDisplayRoute(map, directionsRenderer, directionsService, dados.latitude, dados.longitude, buscaCliente);
+
+					marker.infowindow = new google.maps.InfoWindow({
+						content: dados.content
+					});
+
+
+					if (currentInfoWindow === null) {
+						currentInfoWindow = marker;
+					} else {
+						currentInfoWindow.infowindow.close();
+						currentInfoWindow = marker;
+
+					}
+					marker.infowindow.open(map, marker);
+				});
+
+				return marker;
+			}
+
+			function adicionarMarcadoresFilhos(map, id, directionsRenderer, directionsService) {
+				$.getJSON('maps.data.json.hhvm', {
+					caixas: '[' + id + ']',
+					idCliente: '',
+					tipo: 'filho'
+				}, function(data, status) {
+					jQuery.each(data.markers, function(i, marker) {
+						gmarkers.push(addMarcador(map, marker, directionsRenderer, directionsService, 0));
+					});
+				});
+			}
+
+			function calculateAndDisplayRoute(map, directionsRenderer, directionsService, latDestino, lngDestino, montarTrajetoria) {
+				latOrigem = document.getElementById('latPrincipal').value;
+				lngOrigem = document.getElementById('lngPrincipal').value;
+
+				directionsRenderer.setMap(map);
+
+				if ((montarTrajetoria == 1) && (latOrigem != latDestino) && (lngOrigem != lngDestino)) {
+					directionsService.route({
+							origin: {
+								lat: Number(latOrigem),
+								lng: Number(lngOrigem)
+							},
+							destination: {
+								lat: Number(latDestino),
+								lng: Number(lngDestino)
+							},
+							travelMode: google.maps.TravelMode.WALKING,
+						},
+						(response, status) => {
+							if (status === "OK") {
+								directionsRenderer.setDirections(response);
+
+								var labelMsg = document.getElementById('labelMsg').innerHTML;
+								var caixa = extrairNomeCaixa('labelMsg');
+
+								var enderecoCoordenadaNovo = '<?php echo $enderecoCoordenadaNovo ?>';;
+								var idCliente = '<?php echo ($idCliente) ?>'
+
+								labelMsg = labelMsg + "<br><strong>Distancia:</strong> " + response.routes[0].legs[0].distance.value + " m";
+								if (idCliente) {
+									labelMsg += "<br><br><button onclick='enviar(\"" + idCliente + "\",\"" + caixa + "\")'>Vincular cliente?</button>";
+								}
+
+								$('.gm-style-iw-d').html(labelMsg);
+							}
+						}
+					);
+				} else {
+					directionsRenderer.setMap(null);
+
+				}
+
+			}
+
+		}
+
+		function extrairNomeCaixa(elementoId) {
+			var textoElemento = document.getElementById(elementoId).textContent;
+			var match = textoElemento.match(/(.+?)Capacidade/);
+
+			if (match) {
+				return match[1];
+			} else {
+				return "Não encontrado";
+			}
+		}
+
+		function setMapOnAll(map) {
+			for (let i = 0; i < gmarkers.length; i++) {
+				gmarkers[i].setMap(map);
+			}
+		}
+
+		function clearMarkers() {
+			setMapOnAll(null);
+		}
+
+		function deleteMarkers() {
+			clearMarkers();
+			gmarkers = [];
+		}
+
+		$(document).ready(function() {
+
+			window.enviar = function(idCliente, nomeCaixa) {
+				var dados = {
+					_tipoAcao: "adc",
+					idClienteCaixa: idCliente,
+					nomeCaixaEditar: nomeCaixa,
+				};
+
+				$.ajax({
+					url: $('#formClienteAdd').attr('action'),
+					type: 'POST',
+					data: dados,
+					success: function(response) {
+						if (response.split('\n')[1].includes('success')) {
+							alert('Cliente vinculado com sucesso!');
+						
+							// URL base
+							var baseUrl = "../../../../../../cliente_alt";
+
+							// Valor do UUID a ser adicionado na URL
+							var uuid = response.split('\n')[2].replace(/<br\s*\/?>/g, "");
+							
+							// Função para verificar se a URL existe
+							function urlExists(url, callback) {
+								fetch(url, { method: 'HEAD' })
+									.then(response => {
+										if (response.ok) {
+											callback(true);
+										} else {
+											callback(false);
+										}
+									})
+									.catch(() => {
+										callback(false);
+									});
+							}
+
+							// Verifica se cliente_alt.php existe
+							urlExists(baseUrl + ".php?uuid=" + uuid, function(exists) {
+								if (exists) {
+									// Redireciona para cliente_alt.php se existir
+									window.location.href = baseUrl + ".php?uuid=" + uuid;
+								} else {
+									// Verifica se cliente_alt.hhvm existe
+									urlExists(baseUrl + ".hhvm?uuid=" + uuid, function(existsHHVM) {
+										if (existsHHVM) {
+											// Redireciona para cliente_alt.hhvm se existir
+											window.location.href = baseUrl + ".hhvm?uuid=" + uuid;
+										}
+									});
+								}
+							});
+						} else {
+							console.error('Resposta não esperada:', cleanedText);
+						}
+					},
+					error: function(xhr, status, error) {
+						console.error('Erro ao enviar o formulário:', error);
+					}
+				});
+			}
+		});
+
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,179 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║           GERENCIADOR FTTH v2.0 - GUIA RÁPIDO DE INSTALAÇÃO               ║
+║                      Patrick Nascimento - Jan 2026                         ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+LOCALIZAÇÃO: /opt/mk-auth/admin/addons/caixas/
+
+ARQUIVOS DE DOCUMENTAÇÃO:
+├── README.md              - Documentação principal
+├── INSTALL.md             - Guia detalhado
+├── QUICK_COMMANDS.sh      - Comandos rápidos prontos
+└── INSTALACAO.txt         - Este arquivo
+
+SCRIPTS DE INSTALAÇÃO:
+├── install.sh             - Install automático (executável)
+└── deploy.sh              - Deploy remoto (executável)
+
+═════════════════════════════════════════════════════════════════════════════
+
+🚀 3 FORMAS MAIS RÁPIDAS DE INSTALAR:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣  DEPLOY AUTOMÁTICO (RECOMENDADO - 1 comando)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+$ bash /opt/mk-auth/admin/addons/caixas/deploy.sh usuario@servidor_destino
+
+Exemplos:
+$ bash deploy.sh admin@192.168.1.100
+$ bash deploy.sh ubuntu@sua.empresa.com.br
+
+Automatiza:
+✅ Compacta os arquivos
+✅ Transfere via SCP
+✅ Instala no destino
+✅ Configura permissões
+✅ Valida estrutura
+✅ Limpa arquivos temporários
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2️⃣  SCRIPT AUTOMÁTICO (MELHOR CONTROLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Passo 1: Copiar para o servidor remoto
+$ scp -r /opt/mk-auth/admin/addons/caixas user@servidor:/tmp/
+
+Passo 2: Conectar e instalar
+$ ssh user@servidor
+$ cd /tmp && sudo bash caixas/install.sh
+
+Script faz automaticamente:
+✅ Verifica pré-requisitos (mkauth, permissões, PHP)
+✅ Cria backup de versão anterior
+✅ Copia arquivos
+✅ Ajusta proprietário e permissões
+✅ Valida estrutura
+✅ Testa conectividade web
+✅ Exibe relatório final
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3️⃣  MANUAL COM TAR (MÁXIMO CONTROLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# SERVIDOR ORIGEM (onde está o addon)
+$ cd /opt/mk-auth/admin/addons
+$ tar -czf caixas-v2.0.tar.gz caixas/
+$ scp caixas-v2.0.tar.gz user@192.168.1.100:/tmp/
+
+# SERVIDOR DESTINO
+$ ssh user@192.168.1.100
+$ cd /opt/mk-auth/admin/addons
+$ tar -xzf /tmp/caixas-v2.0.tar.gz
+$ sudo chown -R www-data:www-data caixas
+$ sudo chmod -R 755 caixas
+$ rm /tmp/caixas-v2.0.tar.gz
+
+═════════════════════════════════════════════════════════════════════════════
+
+✅ VERIFICAÇÃO PÓS-INSTALAÇÃO
+
+Após instalar, verifique:
+
+1. Addon aparece no painel:
+   URL: http://seu-servidor/admin/addons/
+   Procure: "GERENCIADOR FTTH v2.0"
+
+2. Estrutura de arquivos:
+   $ ls -la /opt/mk-auth/admin/addons/caixas/
+
+3. Permissões corretas:
+   $ ls -ld /opt/mk-auth/admin/addons/caixas/
+   Deve mostrar: drwxr-xr-x ... www-data www-data
+
+4. Manifest válido:
+   $ cat /opt/mk-auth/admin/addons/caixas/manifest.json
+
+5. Sem erros nos logs:
+   $ tail /opt/mk-auth/admin/addons/caixas/error.log
+
+═════════════════════════════════════════════════════════════════════════════
+
+⚙️  CONFIGURAÇÃO APÓS INSTALAÇÃO
+
+1. Banco de Dados (obrigatório):
+   $ nano /opt/mk-auth/admin/addons/caixas/src/cto/config/database.php
+   
+   Editar:
+   - $host = "seu-servidor-bd"
+   - $user = "usuario"
+   - $password = "senha"
+   - $database = "nome_banco"
+
+2. API (opcional):
+   $ nano /opt/mk-auth/admin/addons/caixas/src/cto/config/api.php
+
+3. OLT SSH (se usar módulo OLT):
+   $ nano /opt/mk-auth/admin/addons/caixas/src/cto/componente/olt/conexao.php
+
+═════════════════════════════════════════════════════════════════════════════
+
+🐛 SOLUÇÃO RÁPIDA DE PROBLEMAS
+
+Erro: "Permission denied"
+$ sudo chown -R www-data:www-data /opt/mk-auth/admin/addons/caixas
+$ sudo chmod -R 755 /opt/mk-auth/admin/addons/caixas
+
+Erro: "File not found"
+$ test -f /opt/mk-auth/admin/addons/caixas/manifest.json && echo "OK" || echo "ERRO"
+
+Erro: "Connection refused"
+$ ssh -T user@servidor  # Teste SSH
+$ sudo systemctl status ssh  # Verifique SSH no servidor remoto
+
+Addon não aparece no painel:
+1. Limpe cache do navegador (Ctrl+Shift+Del)
+2. Verifique permissões (755)
+3. Verifique manifest.json válido
+4. Restart Apache/Nginx: sudo systemctl restart apache2
+
+═════════════════════════════════════════════════════════════════════════════
+
+📋 INFORMAÇÕES DO ADDON
+
+Nome:          GERENCIADOR FTTH
+Versão:        2.0
+Autor:         Patrick Nascimento
+Tamanho:       5.3 MB
+Arquivos:      553+
+Requisitos:    PHP 7.0+, Apache 2.2+, MySQL 5.5+
+
+Funcionalidades:
+✅ Dashboard de CTOs
+✅ Gerenciamento de Terminações Ópticas
+✅ Mapa Google Interativo
+✅ Manager OLT (ZTE, CIANET, etc)
+✅ Sistema de Backup
+✅ Provisioning de ONUs
+✅ Análise de Viabilidade
+
+═════════════════════════════════════════════════════════════════════════════
+
+📞 SUPORTE RÁPIDO
+
+Documentação completa:
+  - README.md (visão geral)
+  - INSTALL.md (instalação detalhada)
+  - QUICK_COMMANDS.sh (comandos prontos)
+
+Logs de erro:
+  /opt/mk-auth/admin/addons/caixas/error.log
+
+Contato:
+  Autor: Patrick Nascimento
+  Data: 1º de Janeiro de 2026
+
+═════════════════════════════════════════════════════════════════════════════
+
+Criado em: 1º de Janeiro de 2026
+Última atualização: Conforme versionamento no addon

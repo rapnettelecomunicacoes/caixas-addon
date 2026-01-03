@@ -1,0 +1,62 @@
+<?php
+// A sessão já foi iniciada no app.hhvm
+
+$_route = (isset($_POST['_route'])) ? $_POST['_route'] : null;
+$_tipoAcao = (isset($_POST['_tipoAcao'])) ? $_POST['_tipoAcao'] : null;
+$table_name = 'mp_olt';
+
+
+$ID = (isset($_POST['ID'])) ? $_POST['ID'] : null;
+$NOME_OLT = (isset($_REQUEST['olt'])) ? $_REQUEST['olt'] : null;
+$NUMERO_SERIE = (isset($_POST['NUMERO_SERIE'])) ? $_POST['NUMERO_SERIE'] : null;
+$MODELO = (isset($_POST['MODELO'])) ? $_POST['MODELO'] : null;
+$FABRICANTE = (isset($_POST['FABRICANTE'])) ? $_POST['FABRICANTE'] : null;
+$DATA_INSTALACAO = (isset($_POST['DATA_INSTALACAO'])) ? $_POST['DATA_INSTALACAO'] : null;
+$OLT_STATUS = (isset($_POST['OLT_STATUS'])) ? $_POST['OLT_STATUS'] : null;
+$ENDERECO_IP = (isset($_POST['ENDERECO_IP'])) ? $_POST['ENDERECO_IP'] : null;
+$LOCALIZACAO = (isset($_POST['LOCALIZACAO'])) ? $_POST['LOCALIZACAO'] : null;
+$RESPONSAVEL_TECNICO = (isset($_POST['RESPONSAVEL_TECNICO'])) ? $_POST['RESPONSAVEL_TECNICO'] : null;
+$USUARIO = (isset($_POST['USUARIO'])) ? $_POST['USUARIO'] : null;
+$SENHA = (isset($_POST['SENHA'])) ? $_POST['SENHA'] : null;
+$PORTASSH = (isset($_POST['PORTASSH'])) ? $_POST['PORTASSH'] : null;
+
+
+
+
+// CONTADOR SUBTITULO
+$numeroCaixas = 0;
+$numeroPortas = 0;
+$numeroPortasLivres = 0;
+$numeroPortasAtivas = 0;
+;
+if (isset($_POST['_tipoAcao']) && ($_tipoAcao != 'S')) {
+
+    switch ($_tipoAcao) {
+        case "ad":
+            
+            $textoResposta = adicionarOlt($connection, $table_name,  $NOME_OLT , $NUMERO_SERIE ,$MODELO ,$FABRICANTE ,$DATA_INSTALACAO ,$OLT_STATUS ,$ENDERECO_IP ,$LOCALIZACAO ,$RESPONSAVEL_TECNICO ,$USUARIO ,$SENHA ,$PORTASSH);
+            include "src/cto/componente/resposta.hhvm";
+            break;
+    }
+}
+if ($tipoResposta == 1) {
+    include "src/cto/componente/mensagem.hhvm";
+}
+
+
+// VERIFICAR SE A TABELA EXISTE E CRIAR UMA NOVA	 
+/*
+$resultTabelaExiste = verificaTabelaExiste($connection, $table_name);
+
+if (!$resultTabelaExiste) {
+    $resposta = criarTabelaMp_Olt($connection, $table_name);
+    if ($resposta == "") {
+        $resposta = adicionarOlt($connection, $table_name,  $NOME_OLT , $NUMERO_SERIE ,$MODELO ,$FABRICANTE ,$DATA_INSTALACAO ,$OLT_STATUS ,$ENDERECO_IP ,$LOCALIZACAO ,$RESPONSAVEL_TECNICO ,$USUARIO ,$SENHA ,$PORTASSH);
+    }
+} 
+*/
+
+//$dadosOlt = consultarOLT($connection, $table_name, $NOME_OLT);
+
+?>
+

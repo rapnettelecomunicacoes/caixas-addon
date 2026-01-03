@@ -1,0 +1,4 @@
+<?php
+   include "controller.hhvm"; 
+   include "editar.view.hhvm"; 
+?>

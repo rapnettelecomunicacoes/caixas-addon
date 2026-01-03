@@ -1,0 +1,6 @@
+<form role="form" id="modalRespostabkp" action="" method="post">
+<input type="hidden" name="textoResposta" id="textoResposta" value="<?=$textoResposta?>" />		
+<input type="hidden" name="tipoResposta" id="tipoResposta" value="1" />	
+<input type="hidden" name="_route" id="_route" value="backup" />
+</form>
+<script>document.getElementById('modalRespostabkp').submit()</script>

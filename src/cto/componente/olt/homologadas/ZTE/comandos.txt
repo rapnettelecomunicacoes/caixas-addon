@@ -1,0 +1,484 @@
+Comandos Básicos OLT ZTE.
+
+Neste artigo veremos os comandos mais comuns para o dia a dia de análise em uma OLT ZTE.
+
+Os comandos citados abaixo foram validados para OLT ZTE ZXA10 Software, Version: V1.1.2_BC, Release software
+
+
+Comandos Show
+O comando ter len desabilita o limite de linhas na saída de um comando
+
+
+ter len 0
+O comando show clock exibe a hora e a data do sistema.
+
+show clock
+O comando show ip interface brief exibe um resumo das interfaces IP.
+
+show ip interface brief
+
+O comando show equip exibe informações sobre o hardware e o software de um dispositivo.
+A saída do comando show equip pode variar dependendo do dispositivo e da versão do software. No entanto, geralmente inclui informações como:
+– O nome do dispositivo
+– O tipo de dispositivo
+– O número de série
+– A versão do software
+– As informações de configuração
+– Os recursos disponíveis
+O comando show equip é útil para diagnosticar problemas com um dispositivo ou para obter informações sobre as especificações de um dispositivo.
+
+show equip
+
+O comando show card-clock exibe a hora e a data do relógio do cartão.
+O relógio do cartão é um relógio independente que pode ser usado para manter a hora e a data de um dispositivo, mesmo que o relógio do sistema esteja desligado. O comando show card-clock é útil para verificar se o relógio do cartão está funcionando corretamente.
+
+show card-clock
+O comando show install pode ser usado para exibir informações sobre o status de uma instalação de software ou firmware em um dispositivo. A saída do comando pode incluir informações como:
+– O status da instalação
+– O progresso da instalação
+– Os erros ou avisos da instalação
+O comando show install é útil para monitorar o progresso de uma instalação ou para diagnosticar problemas com uma instalação.
+
+
+show install
+show install active
+show install commit
+O comando show patch exibe informações sobre os patches instalados em um dispositivo.
+
+show patch
+show patch effective
+A função do comando show processor é exibir informações sobre o processador de um dispositivo.
+
+
+show processor
+show temperature detail: Exibe detalhes sobre as temperaturas do sistema.
+
+show temperature detail
+show card slot 1: Exibe informações sobre o slot de cartão 1.
+
+show card slot 1
+
+show card-exception current slotno 1: Exibe as exceções de cartão atuais para o slot 1.
+
+show card-exception current slotno 1
+show card-exception hist slotno 1: Exibe o histórico de exceções de cartão para o slot 1.
+
+show card-exception hist slotno 1
+show control-panel packet-limit statistics inband: Exibe estatísticas de limite de pacote de banda interna.
+
+show control-panel packet-limit statistics inband
+
+show control-panel packet-limit statistics slot 1: Exibe estatísticas de limite de pacote para o slot 1.
+
+show control-panel packet-limit statistics slot 1
+show control-panel cpu queue: Exibe filas de CPU do painel de controle.
+
+show control-panel cpu queue
+show control-panel cpu queue statistics: Exibe estatísticas das filas de CPU do painel de controle.
+
+show control-panel cpu queue statistics
+show mac: Exibe endereços MAC.
+
+show mac
+show arp: Exibe a tabela ARP.
+
+show arp
+show nd6 cache: Exibe o cache ICMPv6.
+
+show nd6 cache
+show ip forwarding route summary: Exibe um resumo das rotas de encaminhamento IP.
+
+show ip forwarding route summary
+show ipv6 forwarding route summary: Exibe um resumo das rotas de encaminhamento IPv6.
+
+show ipv6 forwarding route summary
+show ip forwarding route: Exibe as rotas de encaminhamento IP.
+
+show ip forwarding route
+show ipv6 forwarding route: Exibe as rotas de encaminhamento IPv6.
+
+show ipv6 forwarding route
+show alarm history: Exibe o histórico de alarmes.
+
+show alarm history
+show alarm curre: Exibe alarmes atuais.
+
+show alarm curre
+show power: Exibe informações sobre o consumo de energia.
+
+show power
+Todos os Comandos show na OLT ZTE C600
+show aaa-accounting-template: Mostrar configuração do modelo de contabilidade AAA
+show aaa-authentication-template: Mostrar configuração do modelo de autenticação AAA
+show aaa-authorization-template: Mostrar configuração do modelo de autorização AAA
+show access-list: Informações para lista de acesso
+show accounting: Mostrar informações contábeis do RADIUS
+show acl: Configuração de ACL
+show admin-state: Mostrar informações do estado do administrador do cartão
+show alarm: Mostrar informações de alarme
+show all: Mostrar toda a rota de encaminhamento
+show anti-user-side-icmp: Mostrar opção ICMP anti-usuário
+show aps: Mostrar informações de APS
+show arp: Mostrar tabela ARP
+show authen-restriction: Mostrar informações sobre usuários com restrição de autenticação
+show authentication-info: Mostrar informações de autenticação
+show auto-write: Mostrar informações de gravação automática
+show backboard: Mostrar informações da tabela
+show battery: Mostrar bateria
+show bfd: Mostrar informações do BFD
+show bgp: Mostrar informações do BGP
+show blade: Mostrar informações da lâmina
+show blade-ifconfig: Mostrar informações do ifconfig da lâmina
+show blade-manage: Mostrar configuração de gerenciamento de blade
+show bootmode: mostrar autenticação bootmode
+show card: Mostrar informações do cartão
+show card-clock: Mostrar informações do relógio do cartão
+show card-exception: Exceção de cartão
+show card-power-consumption: Mostrar consumo de energia do cartão
+show card-upgrade-order: Mostrar pedido de atualização do cartão
+show certification: Mostrar certificação
+show cfm: Mostrar informações do CFM
+show check: Mostrar informações do cheque
+show clock: Mostrar o relógio atual do sistema
+show cmdgroup: Mostrar cmdgrupo
+show collection: Mostrar informações da coleção
+show color-te: Mostrar resumo colorido-TE
+show configuration: Mostrar informações de configuração
+show configure: Mostrar configuração exclusiva
+show console: Mostrar informações do console
+show control-panel: Mostrar informações de configuração do painel de controle
+show control-protocol: Mostrar informações do protocolo de controle
+show cps: Mostrar informações do CPS
+show cpuload-threshold: Mostrar limite de cpuload
+show debug: Mostrar o estado de cada opção de depuração
+show debug-timer: Mostrar hora de desligar a opção de depuração
+show device: Mostrar informações do dispositivo
+show devid: Mostrar identidade do dispositivo
+show dhcp-test: Mostrar informações de teste dhcp
+show dhcpv4-l2-relay-agent: Mostrar informações do dhcpv4-l2-relay-agent
+show dhcpv6-l2-relay-agent: Mostrar informações do dhcpv6-l2-relay-agent
+show dhcpv6-l2-relay-mode: Mostrar informações do modo dhcpv6-l2-relay
+show diaglog: Mostrar informações do diálogo
+show digital: Mostrar assinatura digital
+show discard-packet-mode: mostrar modo de pacote de descarte
+show dot1x: Mostrar configuração dot1x
+show ecmp-mode: Mostrar modo ECMP
+show env-power-consumption: Mostrar consumo de energia do ambiente
+show env-switch: Mostrar mudança de ambiente
+show epm-config: Mostrar informações do Epm
+show epon: Mostrar informações de configuração do EPON
+show equipment: Mostrar informações do equipamento
+show erps: Mostrar eRPs
+show error: Mostrar informações de erro
+show eth-switch: Mostrar configuração do eth-switch
+show ethernet-oam: Mostrar informações de Ethernet OAM
+show evpn: Mostrar informações EVPN
+show fan: Mostrar as informações do fã
+show fan-amend: Mostrar alteração de fã
+show fc: Mostrar informações do FC
+show filesystem: Mostrar sistema de arquivos do dispositivo operável
+show gpon: Mostrar informações GPON
+show hardware-state: Mostrar informações de resultados de autoverificação de hardware
+show health-report-threshold: Mostrar configuração do limite do relatório de integridade
+show his-performance: Configuração de desempenho dele
+show history: Mostrar o histórico de comandos da sessão
+show holdtime: Mostrar tempo de espera do porto
+show hostname: Mostrar o nome da rede do sistema
+show hotkey: Mostrar informações sobre linhas terminais
+show ifdescr: Mostrar configuração ifDescr
+show igmp: Mostrar informações globais do IGMP
+show igmp-test: Mostrar teste igmp
+show images: Mostrar imagens brevemente
+show ingress-outer-tpid-filter: mostrar filtro tpid global
+show inner-port: Mostrar informações da porta interna
+show install: Mostrar informações dos pacotes de instalação
+show interface: Exibir propriedades e estatísticas da interface
+show interface-vlan: Mostrar configuração VLAN da interface VLAN
+show interface-vnd0: Exibir propriedades e estatísticas da interface-vnd0
+show ip: Mostrar informações de IP
+show ip-service: Mostrar informações do serviço IP
+show ip-source-guard: Mostrar informações do ip-source-guard
+show ipdr: Mostrar informações de IPDR
+show ipg: Mostrar informações IPG da interface
+show iptv: Mostrar informações sobre iptv
+show ipv4-access-groups: Mostrar grupos de acesso IPv4
+show ipv4-access-lists: Mostrar listas de acesso IPv4
+show ipv4-mixed-access-groups: Mostrar grupos de acesso misto IPv4
+show ipv4-mixed-access-lists: Mostrar listas de acesso mistas IPv4
+show ipv6: Mostrar informações IPv6
+show ipv6-access-groups: Mostrar grupos de acesso IPv6
+show ipv6-access-lists: Mostrar listas de acesso IPv6
+show ipv6-mixed-access-groups: Mostrar grupos de acesso misto IPv6
+show ipv6-mixed-access-lists: Mostrar listas de acesso mistas IPv6
+show isis: Mostrar informações de roteamento IS-IS
+show issu: Atualização para ISSU
+show keychain: Mostrar informações do chaveiro
+show l2vpn: Mostrar informações L2VPN
+show l2vpn-statistics: Mostrar informações de estatísticas l2vpn
+show l3switch: mostrar interface L3
+show l3vpn: Mostrar informações L3VPN
+show lacp: Mostrar informações do LACP
+show lawful-intercept: Mostrar informações detalhadas de fluxo legal
+show license: Mostrar informações de licença
+show link-access-groups: Mostrar grupos de acesso ao link
+show link-access-lists: Mostrar listas de acesso de links
+show lldp: Mostrar informações do LLDP
+show load-mode: Mostrar modo de carregamento
+show local-user: Mostrar informações do usuário local
+show lock: Mostrar configuração de bloqueio
+show logfile: Mostrar informações do comando de configuração
+show logging: Mostrar informações de registro
+show logicinterface: Mostrar informações da interface lógica
+show login: Mostrar configuração de defesa contra ataque
+show loopback-detection: Mostrar status de detecção de loop
+show lsp-group: Mostrar as informações de configuração do módulo LSP-GROUP
+show lst: Mostrar a última configuração
+show mac: Mostrar informações do mac do cartão principal
+show mac-list: Mostrar informações da lista MAC
+show mc-elam: Mostrar informações do MC-ELAM
+show media-monitor: Mostrar informações do monitor de mídia
+show memory-threshold: Mostrar limite de memória
+show mld: Mostrar informações globais do MLD
+show mld-test: Mostrar teste mld
+show mng-lr-config: Mostrar configuração do mng lr
+show monitor: Monitorar informações
+show mpls: Mostrar informações MPLS
+show mpnat: Mostrar mpnat
+show msvxlan: Mostrar informações do msan vxlan
+show multi-user: Mostrar informações multiusuário
+show multicast: mostrar proteção de dados multicast
+show multicast-monitor: Mostrar informações do monitor multicast.
+show mvlan-translate: Mostrar informações globais de trans mvlan.
+show nd: Mostrar informações de descoberta de vizinhos IPv6
+show nd6: Mostrar informações de descoberta de vizinhos IPv6
+show netconf: Mostrar parâmetros do agente NETCONF
+show netconf-engine: Mostrar informações do mecanismo NETCONF
+show nf-type: Mostrar informações do tipo NF
+show ngpon: Mostrar informações NGPON
+show ntp: Mostrar informações NTP
+show odb-switch: mostrar o status do switch odb
+show onu-compat: Mostrar informações compatíveis com o tipo ONU
+show onu-pnp: mostrar informações de configuração onu-pnp
+show onu-type: Mostrar informações do modelo do tipo ONU
+show onu-type-if: Mostrar informações UNI do tipo ONU
+show openflow: Mostrar informações do OpenFlow
+show optical-als-info: Mostrar informações de porta óptica
+show optical-module-alarm-ctrl: Mostrar informações do módulo óptico-alarme-ctrl
+show optical-module-alarm-profile: Mostrar perfil de alarme do módulo óptico
+show optical-module-class-profile: Mostrar perfil de classe de módulo óptico
+show optical-module-firmware: Mostrar informações do módulo óptico
+show optical-module-info: Mostrar informações do módulo óptico da porta
+show optical-module-light-status: Mostrar status da luz do módulo óptico
+show optical-module-plug-record: Mostrar registros de plug e desconexão do módulo óptico da porta
+show optical-module-reserved-class: Mostrar classe reservada do módulo óptico
+show para-group: Mostrar configuração de paragrupo
+show para-group-bound: Mostre as regras usando o para-grupo
+show password-dictionary: Mostrar informações do dicionário de senha
+show patch: Mostrar informações do patch
+show patch-func: Conjunto de funções de patch
+show perf-brg-if-profile: Mostrar perfil de alarme de desempenho brg-if
+show perf-eth-if-profile: Mostrar perfil de alarme de desempenho EthPort
+show perf-eth-olt: Mostrar perfil de alarme de desempenho Ethernet OLT
+show perf-eth-onu: Mostrar perfil de alarme de desempenho Ethernet da ONU
+show perf-mac-olt: Mostrar perfil de alarme de desempenho OLT MAC
+show perf-mac-onu: Mostrar perfil de alarme de desempenho ONU MAC
+show perf-vlan-profile: Mostrar perfil de alarme de desempenho de vlan
+show performance: Mostrar configuração de desempenho
+show pid: Estratégia de fãs do PID
+show ping: Mostrar informações de ping
+show pmap: Mostrar relação pmap
+show pnp: Mostrar configuração pnp
+show pon: Mostrar informações PON
+show pon-alarm: Mostrar alarme
+show pon-association-vlan: mostrar pon vlanlist
+show port-identification: Mostrar informações de identificação da porta
+show power: Mostrar as informações de energia
+show power-alarm-threshold: Limite de alarme de energia
+show power-data-collection-period: Mostrar período de coleta de dados de energia
+show power-sampling-period: Mostrar período de amostragem de potência
+show pppoe: Mostrar comandos pppoe
+show pppoe-filter: Mostrar status do filtro pppoe
+show pppoe-intermediate-agent: Mostrar informações do agente intermediário pppoe
+show pppoe-reverse-packet-filter: Mostrar configuração do pppoe-reverse-packet-filter
+show pppoe-snooping: Mostrar informações de espionagem de pppoe
+show pppoe-test: Mostrar todos os status e resultados do pppoe-test
+show priority-mark: Configuração de marca de prioridade ACL
+show privilege: Mostrar nível de privilégio atual
+show process-memory-threshold: Mostrar limite de memória do processo
+show processor: Mostrar informações do processador
+show propagate: Mostrar informações de propagação
+show protection: Mostrar informações de proteção PON
+show pseudo-wire: Mostrar o perfil qos aplicado ao pseudo-wire
+show pw: Mostrar configuração de senha
+show pw-list: Mostrar informações da lista de senhas
+show pwe3: Mostrar informações do PWE3
+show qos: Mostrar informações de QoS
+show radius: Mostrar informações de RADIUS
+show radius-attribute: Mostrar atributos RADIUS suportados
+show radius-resource: Mostrar informações do recurso RADIUS
+show radius-server: Mostrar informações do servidor RADIUS
+show read-config: Mostrar informações de configuração de leitura
+show real-acl: Configuração de ACL
+show redirect: Mostrar interface de redirecionamento
+show remote-unit: mostrar RU
+show resource: Mostrar recurso
+show resource-profile: Mostrar perfil de recurso
+show route-map: Mostrar informações do mapa de rotas
+show rsvp: Mostrar confirmação de presença
+show running-config: Mostrar configuração operacional atual
+show running-config-interface: Mostrar informações de execução da interface
+show safety-speed: Velocidade de segurança
+show security: Informação segura
+show serdes-for-power: Serdes pelo poder
+show serdes-for-temp: Serdes-para-temperatura
+show serdes-state: Mostrar estado de serdes
+show service-port: Mostrar configuração da porta de serviço
+show service-unit-select: Mostrar informações de seleção da unidade de serviço
+show snetconf: Mostrar parâmetros do servidor SNETCONF
+show snmp: Mostrar informações SNMP
+show sockets: Mostrar todas as informações de conexões de soquete
+show software: Mostrar informações de software do sistema
+show spantree: Mostrar informações de STP
+show ssh: Mostrar informações SSH
+show standard-yang-load: Mostrar modelo yang padrão
+show startrun-backup: Mostrar informações de backup de inicialização
+show startup-config: Mostrar configuração de inicialização
+show statistics: Estatisticas
+show storage-threshold: Mostrar limite de armazenamento
+show strong-password-info: Mostrar parâmetros de configuração de senha forte
+show supervlan: Mostrar parâmetro SuperVLAN
+show supervlan-pool: Mostrar IP-POOL SuperVLAN
+show supervlan-v6: Mostrar parâmetro SuperVLAN para IPv6
+show supervlan-v6pool: Mostrar SuperVLAN IPv6-POOL
+show synchronization: Mostrar estado de sincronização mestre-escravo
+show system: Mostrar modo de switch para ZTP
+show system-energy-saving-detail: Mostrar detalhes de economia de energia do sistema
+show system-energy-saving-mode: mostrar modo de economia de energia do sistema
+show system-monitor: Mostrar estado do monitor do sistema
+show system-overheat-threshold: Mostrar limite de superaquecimento do sistema
+show tacacs: Mostrar configuração global do TACACS+
+show tacacs-server: Mostrar configuração do servidor TACACS+
+show tacacs-server6: Mostrar configuração do servidor TACACS+ IPv6
+show tacplus: Mostrar configuração do servidor do grupo TACPLUS
+show tcp: Mostrar informações TCP
+show tcp6: Mostrar informações de TCP IPv6
+show te-class-mapping: Mostrar mapa TE-CLASS
+show te-ecmp-group: Mostrar informações do grupo TE-ECMP
+show tech-support: Mostrar informações de suporte técnico
+show telemetry: Mostrar informações de telemetria
+show temperature: Mostrar informações detalhadas de temperatura
+show terminal: Mostrar parâmetros de configuração do terminal
+show this: Mostrar configuração do modo atual
+show time: Altura de começar
+show time-range: Mostrar informações de intervalo de tempo
+show time-range-acl: Mostrar intervalo de tempo-acl
+show tpa: Mostrar informações do TPA
+show traffic-limit: Configuração de limite de tráfego ACL
+show traffic-mirror: mostrar informações do espelho de trânsito
+show traffic-stat-enable: Mostrar estatísticas de tráfego, ativar informações
+show traffic-stat-value: Mostrar informações de valor estatístico de tráfego
+show tunnel-policy: Mostrar informações sobre política de túnel
+show twamp: Mostrar informações do TWAMP
+show uaps: Mostrar configuração do UAPS
+show udp-helper: Mostrar informações do udp-helper
+show updateepld: Mostrar status de atualização do cpld
+show upgrade-state: Mostrar estado de atualização do problema
+show user-defined-access-groups: Mostrar grupos de acesso definidos pelo usuário
+show user-defined-access-lists: Mostrar listas de acesso definidas pelo usuário
+show user-group: Mostrar informações do grupo de usuários
+show user-protocol-access-lists: Mostrar lista de acesso de protocolo de usuário
+show username: Mostrar informações sobre usuários registrados
+show users: Mostrar informações sobre linhas terminais
+show vgw: Mostrar vgw
+show vgw-bypass: Mostrar bypass vgw
+show virtual-mac: Informações Vmac
+show virtual-network-device: Mostrar as informações do dispositivo de rede virtual
+show vlan: Status da VLAN
+show vlan-connect: regras de conexão vlan
+show vlan-mark: Configuração de marca vlan ACL
+show vlan-share: Mostrar lista de VLANs compartilhadas
+show vlan-validity: Status de validade da Vlan
+show vnd: Mostrar informações de VND
+show vnd-resource: Mostrar recurso vnd
+show vport-resource: Mostrar recurso vport
+show vrrp: Mostrar informações do VRRP
+show vxlan: Mostrar informações de VXLAN
+show wave-channel-group-info: Mostrar informações do grupo de canais de onda wdm-pon
+show wave-channel-information: Mostrar informações do canal de onda wdm-pon
+show wpon-config-speed: velocidade wpon-config
+
+ACL
+show acl #Verifica todas as ACL criadas
+show running-config | in access-group | Verifica se as ACL estão aplicadas
+VERIFICAR SE PEGOU IP NA ONU ZTE
+O comando abaixo mostra todos os IPs entregues para a ONUs. Obs: | include só funciona a partir da versão 1.2.3 da IOS
+
+show ip dhcp snooping dynamic database
+show ipv6 dhcp snooping dynamic database
+VERIFICAR CLIENTE NA OLT ZTE
+Os comandos abaixo serão úteis para, respectivamente:
+
+Verificar os status geral de toda a ONU registrada na OLT ZTE
+Exibir o PON Number (serial) de cada ONU registrada
+Analisar os níveis recebidos em cada ONU
+Analisar os dados da interface Física
+Exibe os clientes (ONU / ONT) não registrados (autofind)
+show gpon onu state
+show gpon onu baseinfo gpon_olt-1/1/14
+show pon power attenuation gpon_onu-1/1/14:1
+show interface gpon_olt-1/1/14
+show pon onu uncfg
+VERIFICAR NIVEIS NA ONU ZTE
+show pon power olt-rx gpon_onu-1/1/12:5
+BLOQUEIO DE ONU NA OLT ZTE
+OLTZTE01#conf t
+OLTZTE01(config)#interface gpon_olt-1/5/11
+OLTZTE01(config-if-gpon_olt-1/5/11)#blacklist sn HUMABAA33221
+VERIFICAR DHCP NA ZTE
+show running-config DHCP
+
+SERIAL ZTE
+show backboard
+VERSÃO OLT ZTE
+show software
+POTENCIA E NIVEIS DE UPLINKS EM PROCESSADORAS ZTE
+show optical-module-info xgei-1/11/1
+show optical-module-info xgei-1/10/1
+COMUTACAO DA PROCESSADORA ZTE
+show card
+redundancy switch sc force
+Força do Reload de um Placa ou FAN
+reload slot 1 xxxxx force
+VALIDAR MULTICAST
+show ip mroute
+show ip mroute oif vlan5073
+show ip mroute iif vlan4280
+show ip pim mroute
+show ip pim mroute summary
+show ip pim interface
+show ip pim traffic
+show ip pim neighbor vlan4280
+show ip pim nexthop
+show igmp dynamic-member
+VALIDANDO BGP
+show bgp all summary
+show bgp ipv4 unicast neighbor in XXXXXXX
+show bgp ipv4 unicast neighbor out XXXXXXX
+show ip forwarding route bgp
+show bgp ipv6 unicast neighbor in XXXXXXX
+show bgp ipv6 unicast neighbor out XXXXXX
+show ipv6 forwarding route bgp
+VALIDAR STATUS NTP
+show ntp status
+show ntp associations
+VALIDANDO SE O PLUG-IN-PLAY ESTA ATIVO
+show pnp
+EXIBINDO PLACAS DA OLT
+show card
+VALIDAÇÃO DE UPGRADE
+show remote-unit task UPGRADE_OLDFW_to_NEWFW
+show remote-unit update-status gpon_olt-1/1/1 1
+show remote-unit summary-of task UPGRADE_OLDFW_to_NEWFW
+show interface brief
+show bgp all summary
+show lacp mc-lag

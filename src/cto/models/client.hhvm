@@ -1,0 +1,789 @@
+<?php
+
+ //CARREGAR DADOS DA TABELA
+ 
+function tabelaCaixa($connection, $table_name, $ID = null, $nome = null) {
+    $query = "SELECT * FROM $table_name";
+
+    if ($ID !== null) {
+        $query .= " WHERE ID = $ID";
+    } elseif ($nome !== null) {
+        $query .= " WHERE nome = '" . mysqli_real_escape_string($connection, $nome) . "'";
+    }
+
+    $query .= " ORDER BY nome ASC";
+
+    $result = mysqli_query($connection, $query);
+
+    if (!$result) {
+        die("Erro na consulta: " . mysqli_error($connection));
+    }
+
+    return $result;
+}
+    
+  
+function countClientesCto($connection, $cto_name) {
+    $count = 0;
+
+    // Conta clientes
+    if ($result = mysqli_query($connection, "SELECT COUNT(*) AS count FROM sis_cliente WHERE caixa_herm = '" . $cto_name . "' AND cli_ativado = 'S'")) {
+        $row = mysqli_fetch_array($result);
+        $count = $row['count'];
+    } else {
+        $count = 0;
+    }
+
+    // Conta clientes adicionais
+    if ($result = mysqli_query($connection, "SELECT COUNT(*) AS count FROM sis_adicional "
+            . "INNER JOIN sis_cliente ON sis_adicional.login = sis_cliente.login "
+            . "WHERE sis_adicional.caixa_herm = '" . $cto_name . "' AND sis_cliente.cli_ativado = 'S'")) {
+        $row = mysqli_fetch_array($result);
+        $count += $row['count'];
+    } else {
+        $count += 0;
+    }
+
+    return $count;
+}
+
+// Conta clientes que estão online em uma CTO
+function countClientesOnlineCto($connection, $cto_name) {
+    $count = 0;
+
+    // Conta clientes online
+    if ($result = mysqli_query($connection, "SELECT login FROM sis_cliente WHERE caixa_herm = '" . $cto_name . "' AND cli_ativado = 'S'")) {
+        $rowcount = mysqli_num_rows($result);
+        if ($rowcount > 0) {
+            while ($row = mysqli_fetch_array($result)) {
+                if (clienteConectado($connection, $row['login'])) {
+                    $count++;
+                }
+            }
+        }
+    }
+
+    // Conta clientes adicionais online
+    if ($result = mysqli_query($connection, "SELECT username FROM sis_adicional "
+            . "INNER JOIN sis_cliente ON sis_adicional.login = sis_cliente.login "
+            . "WHERE sis_adicional.caixa_herm = '" . $cto_name . "' AND sis_cliente.cli_ativado = 'S'")) {
+        $rowcount = mysqli_num_rows($result);
+        if ($rowcount > 0) {
+            while ($row = mysqli_fetch_array($result)) {
+                if (clienteConectado($connection, $row['username'])) {
+                    $count++;
+                }
+            }
+        }
+    }
+
+    return $count;
+}
+
+
+function send_sms($connection, $message) {
+    // Consulta consolidada para obter os dados necessários
+    $query = "
+        SELECT 
+            MAX(CASE WHEN nome = 'sms_servidor' THEN valor END) AS sms_servidor,
+            MAX(CASE WHEN nome = 'sms_conta' THEN valor END) AS sms_conta,
+            MAX(CASE WHEN nome = 'sms_senha' THEN valor END) AS sms_senha,
+            (SELECT celular FROM sis_provedor LIMIT 1) AS celular
+        FROM sis_opcao
+    ";
+
+    $result = $connection->query($query);
+
+    if ($result && $row = $result->fetch_assoc()) {
+        // Obtém os valores da consulta
+        $sms_servidor = $row['sms_servidor'];
+        $sms_conta = $row['sms_conta'];
+        $sms_senha = $row['sms_senha'];
+        $celular = "55".preg_replace('/\D/', '', $row['celular']); // Remove caracteres não numéricos do celular
+
+        // Monta os parâmetros para a URL
+        $params = [
+            'app' => 'webservices',
+            'u' => $sms_conta,
+            'p' => $sms_senha,
+            'to' => $celular,
+            'msg' => $message 
+        ];
+
+        // Cria a URL completa com os parâmetros GET
+        $url = $sms_servidor . "/index.php?" . http_build_query($params);
+
+        // Inicializa o cURL para requisição GET
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30 // Ajuste o timeout conforme necessário
+        ]);
+
+        // Executa o cURL
+        $response = curl_exec($curl);
+        $error = curl_error($curl);
+        curl_close($curl);
+
+        // Valida a resposta do cURL
+        if ($error) {
+            throw new Exception("Erro no cURL: $error");
+        }
+
+        return $response; // Retorna a resposta completa para análise
+    } else {
+        throw new Exception("Não foi possível recuperar os dados necessários para o envio do SMS.");
+    }
+}
+
+function encontrarOLT($connection, $olt_id) {
+    $sqls = "SELECT * FROM olt WHERE id = " . $olt_id . "";
+    
+    $result = mysqli_query($connection, $sqls);
+
+    if (!$result) {
+        die("Erro na consulta: " . mysqli_error($connection));
+    }
+
+    return $result;
+}
+
+function vincularCaixaCliente($connection, $idCliente, $nomeCaixa, $porta_splitter, $tipoAcao) {
+
+    $tabela_cliente = 'sis_cliente';
+
+    if ($tipoAcao == 'adc') {
+        $sql = "UPDATE $tabela_cliente SET caixa_herm = '" . $nomeCaixa . "' WHERE ID = $idCliente";
+    } else if ($tipoAcao == 'exc') {
+        $sql = "UPDATE $tabela_cliente SET caixa_herm = null WHERE ID = $idCliente";
+    } else if ($tipoAcao == 'edc') {
+        $sql = "UPDATE $tabela_cliente SET porta_splitter = '" . $porta_splitter . "' WHERE ID = $idCliente";
+    }
+
+    if (mysqli_query($connection, $sql)) {
+        $uuid = obterUuidCliente($connection, $idCliente);
+        $resposta = "success\n$uuid";
+    } else {
+        $resposta = "Error: " . $sql . "<br>" . mysqli_error($connection);
+    }
+
+
+    return $resposta;
+}
+
+function obterUuidCliente($connection, $idCliente) {
+    $tabela_cliente = 'sis_cliente';
+    $sql = "SELECT uuid_cliente FROM $tabela_cliente WHERE ID = $idCliente";
+    $result = mysqli_query($connection, $sql);
+    
+    if ($result && $row = $result->fetch_assoc()) {
+        $uuid = $row['uuid_cliente'];        
+        return $uuid;
+    }
+    
+    return null;
+}
+
+
+function obterNomesArmario($connection) {
+    $tabela_cliente = 'sis_cliente';
+    $sql = "SELECT DISTINCT armario_olt FROM $tabela_cliente WHERE armario_olt IS NOT NULL";
+    $result = mysqli_query($connection, $sql);
+    
+    $nomesArmario = array();
+    
+    while ($row = mysqli_fetch_assoc($result)) {
+        $nomesArmario[] = $row['armario_olt'];
+    }
+
+    return $nomesArmario;
+  }
+  
+function vincularCaixaAdicional($connection, $idCliente, $nomeCaixa, $porta_splitter, $tipoAcao) {
+    $tabela_cliente = 'sis_adicional';
+
+    if ($tipoAcao == 'adca') {
+        $sql = "UPDATE $tabela_cliente SET caixa_herm = '" . $nomeCaixa . "' WHERE ID = $idCliente";
+    } else if ($tipoAcao == 'exca') {
+        $sql = "UPDATE $tabela_cliente SET caixa_herm = null WHERE ID = $idCliente";
+    } else if ($tipoAcao == 'edca') {
+        $sql = "UPDATE $tabela_cliente SET porta_splitter = '" . $porta_splitter . "' WHERE ID = $idCliente";
+    }
+
+    if (mysqli_query($connection, $sql)) {
+        $reposta = "";
+    } else {
+        $reposta = "Error: " . $sql . "<br>" . mysqli_error($connection);
+    }
+
+    return $reposta;
+  }
+
+function tabelaCliente($connection, $table_name, $nomeCaixa, $id, $orden = 'nome') {
+    $tabela_cliente = 'sis_cliente';
+    //
+
+    if ($nomeCaixa != '') {
+        $result = mysqli_query($connection, "SELECT * FROM $tabela_cliente WHERE caixa_herm = '" . $nomeCaixa . "' AND cli_ativado = 's' ORDER BY porta_splitter");
+    } elseif ($id != '') {
+        $result = mysqli_query($connection, "SELECT * FROM $tabela_cliente WHERE id = '" . $id . "' ");
+    } else {
+        if ($orden == 'id') {
+            $result = mysqli_query($connection, "SELECT * FROM $tabela_cliente WHERE cli_ativado = 's' ORDER BY $orden desc") or die("A tabela $tabela_cliente n�o existe!");
+        } else {
+            $result = mysqli_query($connection, "SELECT * FROM $tabela_cliente WHERE cli_ativado = 's' ORDER BY $orden  ") or die("A tabela $tabela_cliente n�o existe!");
+        }
+    }
+
+
+    return $result;
+  }
+
+function editarCliente($connection, $id, $coordenadas) {
+    $tabela_cliente = 'sis_cliente';
+
+    $sql = "UPDATE $tabela_cliente SET coordenadas = '" . $coordenadas . "' WHERE id = '" . $id . "' ";
+
+    $result = mysqli_query($connection, $sql);
+
+    if ($result) {
+        $reposta = "";
+    } else {
+        $reposta = "Error: " . $sql . "<br>" . mysqli_error($connection);
+    }
+
+    return $reposta;
+  }
+
+function tabelaAdicional($connection, $table_name, $nomeCaixa, $id, $orden = 'nome') {
+    $tabela_adicional = 'sis_adicional';
+    //
+    if ($nomeCaixa != '') {
+        $result = mysqli_query($connection, "SELECT * FROM $tabela_adicional WHERE caixa_herm = '" . $nomeCaixa . "' ORDER BY porta_splitter");
+    } elseif ($id != '') {
+        $result = mysqli_query($connection, "SELECT * FROM $tabela_adicional WHERE id = '" . $id . "' ");
+    } else {
+        if ($orden == 'id') {
+            $result = mysqli_query($connection, "SELECT * FROM $tabela_adicional ") or die("A tabela $tabela_adicional nao existe!");
+        } else {
+            $result = mysqli_query($connection, "SELECT * FROM $tabela_adicional  ") or die("A tabela $tabela_adicional nao existe!");
+        }
+    }
+
+    return $result;
+  }
+
+function tabelaCto($connection) {
+    $tabela_cto = 'cto';
+    //
+    $result = mysqli_query($connection, "SELECT * FROM $tabela_cto") or die("A tabela $tabela_cto nao existe!");
+
+    return $result;
+  }
+
+function carregarPropriedades($dados) {
+    //getting headers
+    $all_property = array();
+
+    while ($property = mysqli_fetch_field($dados)) {
+
+        array_push($all_property, $property->name);  //save those to array
+    }
+    return $all_property;
+  }
+
+function adicionarCaixa($connection, $table_name, $NOME, $LATITUDE, $LONGITUDE, $ENDERECO, $TIPO, $CAPACIDADE, $SINAL, $OLT, $FSP) {
+    $sql = "INSERT INTO $table_name ( NOME, LATITUDE, LONGITUDE, ENDERECO, TIPO, CAPACIDADE, SINAL, OLT, FSP) VALUES ('" . $NOME . "','" . $LATITUDE . "','" . $LONGITUDE . "','" . $ENDERECO . "','" . $TIPO . "','" . $CAPACIDADE . "','" . $SINAL . "','" . $OLT . "','" . $FSP . "')";
+    if (mysqli_query($connection, $sql)) {
+        $reposta = "";
+    } else {
+        $reposta = "Error: " . $sql . "<br>" . mysqli_error($connection);
+    }
+
+    return $reposta;
+  }
+
+function editarCaixa($connection, $table_name, $ID, $NOME, $LATITUDE, $LONGITUDE, $ENDERECO, $TIPO, $CAPACIDADE, $SINAL, $OLT, $FSP) {
+    $sql = "UPDATE $table_name SET NOME = '" . $NOME . "', LATITUDE = '" . $LATITUDE . "', LONGITUDE = '" . $LONGITUDE . "', ENDERECO = '" . $ENDERECO . "', TIPO = '" . $TIPO . "', CAPACIDADE = '" . $CAPACIDADE . "', SINAL = '" . $SINAL . "', OLT = '" . $OLT . "', FSP = '" . $FSP . "' WHERE ID = $ID";
+
+    if (mysqli_query($connection, $sql)) {
+        $reposta = "";
+    } else {
+        $reposta = "Error: " . $sql . "<br>" . mysqli_error($connection);
+    }
+
+    return $reposta;
+  }
+
+function excluirCaixa($connection, $table_name, $ID) {
+    if ($ID != '') {
+        $sql = "DELETE FROM  $table_name WHERE ID = $ID";
+
+        if (mysqli_query($connection, $sql)) {
+            $reposta = "";
+        } else {
+            $reposta = "Error: " . $sql . "<br>" . mysqli_error($connection);
+        }
+    } else {
+        $reposta = "Error: ID nao informado!";
+    }
+
+
+    return $reposta;
+  }
+
+function criarTabelaMp_Caixas($connection, $table_name) {
+    // Cria uma tabela de dados usando sql
+    $sql = "CREATE TABLE $table_name (
+            id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            nome VARCHAR(20) NOT NULL,
+            latitude VARCHAR(20) NOT NULL,
+            longitude VARCHAR(20) NOT NULL,
+            numcaixa VARCHAR(10) NOT NULL,
+            endereco VARCHAR(80) NOT NULL,
+            tipo VARCHAR(10) NOT NULL,
+            capacidade VARCHAR(2) NOT NULL,
+            sinal VARCHAR(6) NOT NULL,
+            olt VARCHAR(15) NOT NULL,
+            fsp VARCHAR(6) NOT NULL
+            ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1";
+
+    if (mysqli_query($connection, $sql)) {
+        $reposta = "";
+    } else {
+        $reposta = "Error: " . $sql . "<br>" . mysqli_error($connection);
+    }
+
+    return $reposta;
+}
+  
+function verificaTabelaExiste($connection, $table_name) {
+    $sql = "SHOW TABLES LIKE '" . $table_name . "' ";
+    $result = mysqli_query($connection, $sql);
+    
+    if ($result === false) {
+        return false;
+    }
+    
+    $resposta = $result->num_rows > 0;
+
+    return $resposta;
+}
+
+
+function consultarOLT($connection, $olt) {
+    $sql = 'SELECT * FROM mp_olt WHERE nome_olt = "'. $olt. '"';
+    $result = mysqli_query($connection, $sql) or die("Erro na consulta: <br> " . $sql . " <br><br>" . mysqli_error($connection));
+
+    return $result;
+}
+
+function criarTabelaMp_Olt($connection, $table_name) {
+    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nome_olt VARCHAR(255),
+        numero_serie VARCHAR(255),
+        modelo VARCHAR(255),
+        fabricante VARCHAR(255),
+        data_instalacao DATE,
+        olt_status VARCHAR(50),
+        endereco_ip VARCHAR(15),
+        localizacao VARCHAR(255),
+        responsavel_tecnico VARCHAR(255),
+        usuario VARCHAR(50),
+        senha VARCHAR(50),
+        portaSSH INT
+    )";
+
+    if (mysqli_query($connection, $sql)) {
+        // echo "Tabela $table_name criada com sucesso!";
+        return 1;
+        
+    } else {
+        //echo "Erro na criação da tabela: " . mysqli_error($connection);
+        return 0;
+    }
+}
+
+function alterTabelaMp_Caixas($connection, $table_name) {
+    $sql = "
+        ALTER TABLE $table_name
+        ADD COLUMN IF NOT EXISTS numcaixa VARCHAR(10) NOT NULL AFTER longitude,
+        ADD COLUMN IF NOT EXISTS endereco VARCHAR(50) NOT NULL AFTER tipo,
+        ADD COLUMN IF NOT EXISTS capacidade VARCHAR(2) NOT NULL AFTER endereco,
+        ADD COLUMN IF NOT EXISTS sinal VARCHAR(6) NOT NULL AFTER capacidade,
+        ADD COLUMN IF NOT EXISTS olt VARCHAR(15) NOT NULL AFTER sinal,
+        ADD COLUMN IF NOT EXISTS fsp VARCHAR(8) NOT NULL AFTER olt,
+        CHANGE nome nome VARCHAR(20) NOT NULL,
+        CHANGE latitude latitude VARCHAR(10) NOT NULL,
+        CHANGE longitude longitude VARCHAR(10) NOT NULL,
+        CHANGE tipo tipo VARCHAR(10) NOT NULL
+    ";
+
+    $response = mysqli_query($connection, $sql);
+
+    if ($response) {
+        $reposta = "Alterações na tabela $table_name realizadas com sucesso.";
+    } else {
+        $reposta = "Erro: " . mysqli_error($connection);
+    }
+
+    return $reposta;
+}
+
+function adicionarOlt($connection, $table_name, $nome_olt, $numero_serie, $modelo, $fabricante, $data_instalacao, $olt_status, $endereco_ip, $localizacao,  $responsavel_tecnico, $usuario, $senha, $portaSSH) {
+    $sql = "INSERT INTO $table_name ( nome_olt, numero_serie, modelo, fabricante, data_instalacao, olt_status, endereco_ip, localizacao,  responsavel_tecnico, usuario, senha, portaSSH ) VALUES ('" . $nome_olt . "','" . $numero_serie . "','" . $modelo . "','" . $fabricante . "','" . $data_instalacao . "','" . $olt_status . "','" . $endereco_ip . "','" . $localizacao . "','" . $responsavel_tecnico . "','"  . $usuario . "','" . $senha . "','". $portaSSH . "')";
+    if (mysqli_query($connection, $sql)) {
+        $reposta = "";
+    } else {
+        $reposta = "Error: " . $sql . "<br>" . mysqli_error($connection);
+    }
+
+    return $reposta;
+  }
+
+  function editarOlt($connection, $table_name, $ID, $nome_olt, $numero_serie, $modelo, $fabricante, $data_instalacao, $olt_status, $endereco_ip, $localizacao,  $responsavel_tecnico, $usuario, $senha, $portaSSH) {
+    $sql = "UPDATE $table_name SET nome_olt = '" . $nome_olt . "', numero_serie = '" . $numero_serie . "', modelo = '" . $modelo . "', fabricante = '" . $fabricante . "', data_instalacao = '" . $data_instalacao . "', olt_status = '" . $olt_status . "', endereco_ip = '" . $endereco_ip . "', localizacao = '" . $localizacao . "', responsavel_tecnico = '" . $responsavel_tecnico . "', usuario = '" . $usuario . "', senha = '" . $senha. "', portaSSH = '" . $portaSSH . "' WHERE ID = $ID";
+
+    if (mysqli_query($connection, $sql)) {
+        $reposta = "";
+    } else {
+        $reposta = "Error: " . $sql . "<br>" . mysqli_error($connection);
+    }
+
+    return $reposta;
+  }
+
+  function excluirOlt($connection, $table_name, $ID) {
+    if ($ID != '') {
+        $sql = "DELETE FROM  $table_name WHERE ID = $ID";
+
+        if (mysqli_query($connection, $sql)) {
+            $reposta = "";
+        } else {
+            $reposta = "Error: " . $sql . "<br>" . mysqli_error($connection);
+        }
+    } else {
+        $reposta = "Error: ID nao informado!";
+    }
+
+
+    return $reposta;
+  }
+
+function getKeyGoogleMaps($connection) {
+
+    $nome = "key_googlemaps";
+    $table_name = "sis_opcao";
+    $valor = "";
+
+    $result = mysqli_query($connection, "SELECT valor FROM $table_name WHERE nome = '" . $nome . "' ") or die("A tabela $table_name nao existe!");
+
+    if ($result && mysqli_num_rows($result) > 0) {
+        while ($row = mysqli_fetch_array($result)) {
+            $valor = $row['valor'] ?? '';
+        }
+    }
+    return $valor;
+  }
+
+function tabelaProvedor($connection) {
+    $table_name = 'sis_provedor';
+
+    $result = mysqli_query($connection, "SELECT * FROM $table_name") or die("A tabela $table_name nao existe!");
+
+    return $result;
+  }
+
+function tabelaConectados($connection, $caixa_herm, $id) {
+    $table_name = 'vtab_conectados';
+
+        if (($caixa_herm != '') && ($id != '')) {
+            $result = mysqli_query($connection, "SELECT * FROM $table_name WHERE cli_ativado = 's' AND caixa_herm = '" . $caixa_herm . "' AND id = '" . $id . "'") or die("A tabela $table_name nao existe!");
+        } else if ($caixa_herm != '') {
+            $result = mysqli_query($connection, "SELECT * FROM $table_name WHERE cli_ativado = 's' AND caixa_herm = '" . $caixa_herm . "'") or die("A tabela $table_name nao existe!");
+        } else if ($id != '') {
+            $result = mysqli_query($connection, "SELECT * FROM $table_name WHERE cli_ativado = 's' AND id = '" . $id . "'") or die("A tabela $table_name nao existe!");
+        } else {
+            $result = mysqli_query($connection, "SELECT * FROM $table_name WHERE cli_ativado = 's' ") or die("A tabela $table_name nao existe!");
+            return $result;
+        }
+  }
+
+function clienteConectado($connection, $login) {
+    $table_name = 'radacct';
+
+    $result = mysqli_query($connection, "SELECT radacctid FROM $table_name WHERE acctstoptime IS NULL AND username = '$login' LIMIT 1") or die("A tabela $table_name nao existe!");
+    if (mysqli_num_rows($result)) {
+        return true;
+    } else {
+        return false;
+    }
+  }
+
+function getImagemCliente($connection, $caixa_herm, $id, $login) {
+    $table_name = "mp_caixa";
+
+    $ativoConectado = clienteConectado($connection, $login);
+
+    $bloqueado = '';
+    $observacao = '';
+
+    $dadosCliente = tabelaCliente($connection, $table_name, null, $id, null);
+
+    if ($dadosCliente && mysqli_num_rows($dadosCliente) > 0) {
+        while ($row = mysqli_fetch_array($dadosCliente)) {
+            $bloqueado = $row['bloqueado'] ?? '';
+            $observacao = $row['observacao'] ?? '';
+        }
+    }
+
+    if ($ativoConectado && ($bloqueado == 'nao') && ($observacao == 'nao')) {
+        $result = 'point_casinha_on.png';
+    } else if (!$ativoConectado && ($bloqueado == 'nao') && ($observacao == 'nao')) {
+        $result = 'point_casinha_off.png';
+    } else if ($ativoConectado && ($bloqueado == 'sim') && ($observacao == 'nao')) {
+        $result = 'point_casinha_block_on.png';
+    } else if (!$ativoConectado && ($bloqueado == 'sim') && ($observacao == 'nao')) {
+        $result = 'point_casinha_block_off.png';
+    } else if ($ativoConectado && ($observacao == 'sim')) {
+        $result = 'point_casinha_obs_on.png';
+    } else if (!$ativoConectado && ($observacao == 'sim')) {
+        $result = 'point_casinha_obs_off.png';
+    } else {
+        $result = 'point_casinha_on.png';
+    }
+
+    return $result;
+  }
+
+function getImagemAdicional($connection, $caixa_herm, $id, $login) {
+    $table_name = "mp_caixa";
+    $bloqueado = '';
+    $observacao = '';
+
+    $ativoConectado = clienteConectado($connection, $login);
+
+    $dadosAdicional = tabelaAdicional($connection, $table_name, null, $id, null);
+
+    if ($dadosAdicional && mysqli_num_rows($dadosAdicional) > 0) {
+        while ($row = mysqli_fetch_array($dadosAdicional)) {
+            $bloqueado = $row['bloqueado'] ?? '';
+            $observacao = $row['observacao'] ?? '';
+        }
+    }
+
+    $estadoConexao = ($ativoConectado) ? 'on' : 'off';
+    $estadoBloqueio = ($bloqueado == 'sim') ? 'block_' : '';
+
+    $result = "point_casinha_adicional_{$estadoBloqueio}{$estadoConexao}.png";
+
+    return $result;
+}
+
+function obterCoordenadas($connection, $textoEndereco) {
+
+    $key_googlemaps = getKeyGoogleMaps($connection);
+
+    $latitude = 0;
+    $longitude = 0;
+
+
+    $textoEndereco = str_replace(" ", "", $textoEndereco);
+
+    //echo($textoEndereco);
+
+    $url = "https://maps.googleapis.com/maps/api/geocode/json?address=$textoEndereco&key=$key_googlemaps";
+
+    // create curl resource
+    $ch = curl_init();
+    // set url
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $output = curl_exec($ch);
+    curl_close($ch);
+
+    $arr = json_decode($output, TRUE);
+    //print_r($arr);
+
+    foreach ($arr as $item) {
+        foreach ($item as $itemDet) {
+            //print_r($itemDet);
+            $latitude = $itemDet['geometry']['location']['lat'];
+            $longitude = $itemDet['geometry']['location']['lng'];
+        }
+    }
+
+    $result = array(
+        'latitude' => $latitude,
+        'longitude' => $longitude,
+    );
+
+    return $result;
+  }
+
+function obterEndereco($connection, $latitude, $longitude) {
+
+    $key_googlemaps = getKeyGoogleMaps($connection);
+
+    $textoEndereco = "";
+
+    $url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=$latitude,$longitude&key=$key_googlemaps";
+
+    // create curl resource
+    $ch = curl_init();
+    // set url
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $output = curl_exec($ch);
+    curl_close($ch);
+
+    $arr = json_decode($output, TRUE);
+    //print_r($arr['results']);
+
+    foreach ($arr['results'] as $item) {
+        foreach ($item as $itemDet) {
+            if ($textoEndereco == '') {
+                if (isset($itemDet[1]['short_name']) && isset($itemDet[0]['short_name']) && isset($itemDet[2]['short_name']) && isset($itemDet[6]['short_name']) && isset($itemDet[3]['short_name']) && isset($itemDet[4]['short_name'])) {
+                    $textoEndereco = $itemDet[1]['short_name'] . ", " . $itemDet[0]['short_name'] . ", " . $itemDet[2]['short_name'] . ", " . $itemDet[6]['short_name'] . ", " . $itemDet[3]['short_name'] . ", " . $itemDet[4]['short_name'];
+                }
+            }
+        }
+    }
+
+    $result = array(
+        'textoEndereco' => $textoEndereco,
+    );
+
+    return $result;
+  }
+
+function gerarBackupCompleto($connection, $path) {
+    // Coletar dados completos do addon
+    $backup_data = array(
+        'data_backup' => date('Y-m-d H:i:s'),
+        'versao' => '1.0',
+        'ctos' => array(),
+        'configuracoes' => array(),
+        'clientes' => array()
+    );
+    
+    // 1. Dados das CTOs
+    $sql_ctos = "SELECT * FROM mp_caixa ORDER BY id";
+    $result_ctos = mysqli_query($connection, $sql_ctos);
+    if ($result_ctos) {
+        while ($row = mysqli_fetch_assoc($result_ctos)) {
+            $backup_data['ctos'][] = $row;
+        }
+    }
+    
+    // 2. Configurações (sis_opcao)
+    $sql_config = "SELECT * FROM sis_opcao WHERE nome LIKE '%googlemap%' OR nome LIKE '%API%' OR nome LIKE '%caixas%'";
+    $result_config = mysqli_query($connection, $sql_config);
+    if ($result_config) {
+        while ($row = mysqli_fetch_assoc($result_config)) {
+            $backup_data['configuracoes'][] = $row;
+        }
+    }
+    
+    // 3. Clientes relacionados às CTOs
+    $sql_clientes = "SELECT * FROM sis_cliente WHERE cto_id IS NOT NULL OR caixa_herm IS NOT NULL LIMIT 1000";
+    $result_clientes = mysqli_query($connection, $sql_clientes);
+    if ($result_clientes) {
+        while ($row = mysqli_fetch_assoc($result_clientes)) {
+            $backup_data['clientes'][] = $row;
+        }
+    }
+    
+    // Salvar como JSON
+    $filename = $path . "backup_completo_" . date("d_m_Y_His") . ".json";
+    $json_content = json_encode($backup_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    
+    $result = @file_put_contents($filename, $json_content);
+    
+    if ($result === false) {
+        error_log("ERRO ao criar backup completo: " . $filename . " - " . print_r(error_get_last(), true));
+        return false;
+    }
+    
+    return $filename;
+}
+
+function gerarBackup($dados, $param, $path) {
+    $string_arquivo = "";
+
+    foreach ($param as $item) {
+        $string_arquivo = $string_arquivo . $item . ";";
+    }
+    $string_arquivo = $string_arquivo . "\n";
+
+    if ($dados && mysqli_num_rows($dados) > 0) {
+        while ($row = mysqli_fetch_array($dados)):
+            $textoAuxiliar = "";
+            foreach ($param as $item) {
+                if ($textoAuxiliar != "") {
+                    $textoAuxiliar = $textoAuxiliar . ";";
+                }
+                $textoAuxiliar = $textoAuxiliar . ($row[$item] ?? '');
+            }
+            $textoAuxiliar = $textoAuxiliar . "\n";
+
+            $string_arquivo = $string_arquivo . $textoAuxiliar;
+        endwhile;
+    }
+
+    //salvamos o arquivo
+    $name = $path . "caixas_" . date("d_m_Y") . ".csv";
+    
+    $result = @file_put_contents($name, $string_arquivo);
+    
+    if ($result === false) {
+        error_log("ERRO ao criar backup: " . $name . " - " . print_r(error_get_last(), true));
+        return false;
+    }
+
+    return $name;
+  }
+
+function getListaArquivos($path) {
+    $retorno = array();
+    $numero = 0;
+    $types = array('csv');
+    
+    if ($handle = opendir($path)) {
+        while ($entry = readdir($handle)) {
+            $ext = strtolower(pathinfo($entry, PATHINFO_EXTENSION));
+            if (in_array($ext, $types) && strpos($entry, 'caixas_') === 0) {
+
+                $textoArquivo = str_replace("." . $ext, '', $entry);
+
+                $separado = explode("_", $textoArquivo);
+                $periodoCompetencia = $separado[1] . "/" . $separado[2];
+                $dataExportacao = $separado[3] . "/" . $separado[4] . "/" . $separado[5];
+
+                $retorno[] = array(
+                    'ID' => $numero,
+                    'ARQUIVO' => $path . $entry,
+                    'NOME' => $entry,
+                    'REFERENTE' => $periodoCompetencia,
+                    'DATA' => $dataExportacao,
+                );
+            }
+            $numero++;
+        }
+        closedir($handle);
+    }
+
+    return $retorno;
+}
+
+?>

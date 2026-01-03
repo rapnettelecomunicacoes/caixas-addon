@@ -1,0 +1,182 @@
+<?php
+// CRUD - Tratamento de requisições do formulário
+
+$_route = (isset($_REQUEST['_route'])) ? $_REQUEST['_route'] : null;
+$_tipoAcao = (isset($_REQUEST['_tipoAcao'])) ? $_REQUEST['_tipoAcao'] : null;
+$ID = (isset($_REQUEST['ID'])) ? $_REQUEST['ID'] : (isset($_REQUEST['id']) ? $_REQUEST['id'] : null);
+$NOME = (isset($_REQUEST['NOME'])) ? $_REQUEST['NOME'] : null;
+$LATITUDE = (isset($_REQUEST['LATITUDE'])) ? $_REQUEST['LATITUDE'] : null;
+$LONGITUDE = (isset($_REQUEST['LONGITUDE'])) ? $_REQUEST['LONGITUDE'] : null;
+$ENDERECO = (isset($_REQUEST['ENDERECO'])) ? $_REQUEST['ENDERECO'] : null;
+$TIPO = (isset($_REQUEST['TIPO'])) ? $_REQUEST['TIPO'] : null;
+$CAPACIDADE = (isset($_REQUEST['CAPACIDADE'])) ? $_REQUEST['CAPACIDADE'] : null;
+$SINAL = (isset($_REQUEST['SINAL'])) ? $_REQUEST['SINAL'] : null;
+$OLT = (isset($_REQUEST['OLT'])) ? $_REQUEST['OLT'] : null;
+$FSP = (isset($_REQUEST['FSP'])) ? $_REQUEST['FSP'] : null;
+
+$padraoTipoOrdem = ($_route == 'editar') ? 'nome' : 'id';
+$tipoOrdem = (isset($_REQUEST['tipoOrdem'])) ? $_REQUEST['tipoOrdem'] : $padraoTipoOrdem;
+$ativoVisualizar = (isset($_REQUEST['ativoVisualizar'])) ? $_REQUEST['ativoVisualizar'] : 'id';
+$LATITUDEPADRAO = (isset($_REQUEST['LATITUDEPADRAO'])) ? $_REQUEST['LATITUDEPADRAO'] : null;
+$LONGITUDEPADRAO = (isset($_REQUEST['LONGITUDEPADRAO'])) ? $_REQUEST['LONGITUDEPADRAO'] : null;
+
+// Atualizacao do cliente
+$idClienteCaixa = (isset($_REQUEST['idClienteCaixa'])) ? $_REQUEST['idClienteCaixa'] : null;
+$nomeCaixaEditar = (isset($_REQUEST['nomeCaixaEditar'])) ? $_REQUEST['nomeCaixaEditar'] : null;
+$porta_splitter = (isset($_REQUEST['porta_splitter'])) ? $_REQUEST['porta_splitter'] : null;
+
+$idAdicionalCaixa = (isset($_REQUEST['idAdicionalCaixa'])) ? $_REQUEST['idAdicionalCaixa'] : null;
+
+// Carregar dados da caixa ANTES de processar ações para ter o nomeCaixaEditar
+if (function_exists('tabelaCaixa')) {
+    $dadosCaixa = tabelaCaixa($connection, $table_name, $ID);
+    
+    if ($dadosCaixa && mysqli_num_rows($dadosCaixa) > 0) {
+        while ($item = mysqli_fetch_array($dadosCaixa)) {
+            if (!empty($item['nome'])) {
+                $nomeCaixaEditar = $item['nome'];
+                break;
+            }
+        }
+    }
+}
+
+if (isset($_POST['_tipoAcao']) && ($_tipoAcao != 'S')) {
+    switch ($_tipoAcao) {
+        case "ed":
+            if (function_exists('editarCaixa')) {
+                $textoResposta = editarCaixa($connection, $table_name, $ID, $NOME, $LATITUDE, $LONGITUDE, $ENDERECO, $TIPO, $CAPACIDADE, $SINAL, $OLT, $FSP);
+                include "cliente.resposta.hhvm";
+            }
+            break;
+            
+        case "adc":
+            if (function_exists('vincularCaixaCliente')) {
+                $textoResposta = vincularCaixaCliente($connection, $idClienteCaixa, $nomeCaixaEditar, $porta_splitter, $_tipoAcao);
+                include "cliente.resposta.hhvm";
+            }
+            break;
+
+        case "exc":
+            if (function_exists('vincularCaixaCliente')) {
+                $textoResposta = vincularCaixaCliente($connection, $idClienteCaixa, $nomeCaixaEditar, $porta_splitter, $_tipoAcao);
+                include "cliente.resposta.hhvm";
+            }
+            break;
+
+        case "edc":
+            if (function_exists('vincularCaixaCliente')) {
+                $textoResposta = vincularCaixaCliente($connection, $idClienteCaixa, $nomeCaixaEditar, $porta_splitter, $_tipoAcao);
+                include "cliente.resposta.hhvm";
+            }
+            break;
+
+        case "adca":
+            if (function_exists('vincularCaixaAdicional')) {
+                $textoResposta = vincularCaixaAdicional($connection, $idAdicionalCaixa, $nomeCaixaEditar, $porta_splitter, $_tipoAcao);
+                include "cliente.resposta.hhvm";
+            }
+            break;
+
+        case "exca":
+            if (function_exists('vincularCaixaAdicional')) {
+                $textoResposta = vincularCaixaAdicional($connection, $idAdicionalCaixa, $nomeCaixaEditar, $porta_splitter, $_tipoAcao);
+                include "cliente.resposta.hhvm";
+            }
+            break;
+
+        case "edca":
+            if (function_exists('vincularCaixaAdicional')) {
+                $textoResposta = vincularCaixaAdicional($connection, $idAdicionalCaixa, $nomeCaixaEditar, $porta_splitter, $_tipoAcao);
+                include "cliente.resposta.hhvm";
+            }
+            break;
+    }
+}
+
+// Recarregar dados da caixa para ter informações completas
+if (function_exists('tabelaCaixa')) {
+    $dadosCaixa = tabelaCaixa($connection, $table_name, $ID);
+}
+
+// Inicializa variáveis para evitar warnings
+$numeroCaixas = 0;
+$numeroPortas = 0;
+$numeroPortasAtivas = 0;
+$numeroPortasLivres = 0;
+$nomeCaixaEditar = '';
+$clientesCadastrados = [];
+$adicionalCadastrados = [];
+$textoSubTitulo = '';
+
+if (isset($dadosCaixa) && $dadosCaixa && mysqli_num_rows($dadosCaixa) > 0) {
+    if (function_exists('tabelaCliente')) {
+        $dadosCliente = tabelaCliente($connection, $table_name, null, null, $tipoOrdem);
+    }
+    
+    if (function_exists('tabelaAdicional')) {
+        $dadosAdicional = tabelaAdicional($connection, $table_name, null, null, $tipoOrdem);
+    }
+    
+    mysqli_data_seek($dadosCaixa, 0);
+    while ($item = mysqli_fetch_array($dadosCaixa)) {
+        if (!empty($item['nome'])) {
+            if (isset($dadosCliente) && function_exists('tabelaCliente')) {
+                $dadosClienteContador = tabelaCliente($connection, $table_name, $item['nome'], null, null);
+                if ($dadosClienteContador && mysqli_num_rows($dadosClienteContador) > 0) {
+                    while ($rowCliente = mysqli_fetch_array($dadosClienteContador)) {
+                        $numeroPortasAtivas++;
+                    }
+                }
+            }
+
+            if (isset($dadosAdicional) && function_exists('tabelaAdicional')) {
+                $dadosAdicionalContador = tabelaAdicional($connection, $table_name, $item['nome'], null, null);
+                if ($dadosAdicionalContador && mysqli_num_rows($dadosAdicionalContador) > 0) {
+                    while ($rowAdicional = mysqli_fetch_array($dadosAdicionalContador)) {
+                        $numeroPortasAtivas++;
+                    }
+                }
+            }
+
+            $numeroCaixas++;
+            $numeroPortas += intval($item['capacidade'] ?? 0);
+            $numeroPortasLivres = $numeroPortas - $numeroPortasAtivas;
+            $nomeCaixaEditar = $item['nome'];
+        }
+    }
+
+    // Recarregar dados da caixa para próxima iteração
+    if (function_exists('tabelaCaixa')) {
+        $dadosCaixa = tabelaCaixa($connection, $table_name, $ID, null);
+    }
+    
+    // Clientes para editar
+    if (function_exists('tabelaCliente') && !empty($nomeCaixaEditar)) {
+        $dadosClienteEditar = tabelaCliente($connection, $table_name, $nomeCaixaEditar, 'nome');
+        if ($dadosClienteEditar && mysqli_num_rows($dadosClienteEditar) > 0) {
+            while ($item = mysqli_fetch_array($dadosClienteEditar)) {
+                $clientesCadastrados[] = $item['id'] ?? '';
+            }
+        }
+    }
+
+    // Clientes adicionais para editar
+    if (function_exists('tabelaAdicional') && !empty($nomeCaixaEditar)) {
+        $dadosAdicionalEditar = tabelaAdicional($connection, $table_name, $nomeCaixaEditar, 'nome');
+        if ($dadosAdicionalEditar && mysqli_num_rows($dadosAdicionalEditar) > 0) {
+            while ($item = mysqli_fetch_array($dadosAdicionalEditar)) {
+                $adicionalCadastrados[] = $item['id'] ?? '';
+            }
+        }
+    }
+    
+    // Carregar TODOS os clientes para seleção
+    if (function_exists('tabelaCliente')) {
+        $todosClientes = tabelaCliente($connection, $table_name, null, null, 'nome');
+    }
+}
+
+// Subtítulo
+$textoSubTitulo = 'CAIXAS: ' . $numeroCaixas . ' | CAPACIDADE: ' . $numeroPortas . ' | LIVRES: ' . $numeroPortasLivres;
+?>

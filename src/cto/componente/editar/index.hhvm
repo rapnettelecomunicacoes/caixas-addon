@@ -1,0 +1,115 @@
+<?php
+/**
+ * Roteador - Componente Completo
+ * Incluir em ordem: config > database > models > controller > view
+ */
+
+// === FUNÇÃO PARA FAZER UNSERIALIZE MANUAL DE SESSÃO ===
+if (!function_exists('unserialize_session')) {
+    function unserialize_session($data) {
+        $vars = array();
+        $a = preg_split("/(\w+)\|/", $data, -1, PREG_SPLIT_DELIM_CAPTURE);
+        for ($i = 1; $i < count($a); $i += 2) {
+            $k = $a[$i];
+            $v = unserialize($a[$i + 1]);
+            $vars[$k] = $v;
+        }
+        return $vars;
+    }
+}
+
+// === CARREGAR DADOS DE SESSÃO MANUALMENTE ===
+if (empty($_SESSION)) {
+    $_SESSION = [];
+
+    foreach ($_COOKIE as $name => $value) {
+        if (strpos($name, '_admin-') === 0 && strpos($name, '-MKA') !== false) {
+            $sess_file = '/var/tmp/sess_' . $value;
+            
+            if (file_exists($sess_file)) {
+                $content = file_get_contents($sess_file);
+                if (!empty($content)) {
+                    $_SESSION = unserialize_session($content);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// === VERIFICAÇÃO DE AUTENTICAÇÃO ===
+if (empty($_SESSION) || !isset($_SESSION['MKA_Logado'])) {
+    header("Location: ../../../../../../../");
+    exit();
+}
+
+// === DEFINIÇÕES GLOBAIS ===
+$component_base = dirname(__FILE__);
+$component_name = basename(dirname(__FILE__));
+
+// Encontrar addon_base procurando por src/cto/componente
+$addon_base = $component_base;
+for ($i = 0; $i < 5; $i++) {
+    $addon_base = dirname($addon_base);
+    if (file_exists($addon_base . '/src/cto/config/database.hhvm')) {
+        break;
+    }
+}
+
+// === INCLUIR ARQUIVOS NA ORDEM CORRETA ===
+
+// 1. Incluir configurações de banco de dados
+$db_config_file = $addon_base . '/src/cto/config/database.hhvm';
+if (!file_exists($db_config_file)) {
+    die('Erro: Arquivo não encontrado em: ' . $db_config_file);
+}
+include_once $db_config_file;
+
+// 2. Incluir conexão com banco de dados
+$db_index_file = $addon_base . '/src/cto/database/index.hhvm';
+if (!file_exists($db_index_file)) {
+    die('Erro: Arquivo não encontrado em: ' . $db_index_file);
+}
+include_once $db_index_file;
+
+// 3. Incluir modelos/clientes
+$models_file = $addon_base . '/src/cto/models/client.hhvm';
+if (!file_exists($models_file)) {
+    $models_file = $addon_base . '/src/cto/models/client.php';
+}
+if (file_exists($models_file)) {
+    include_once $models_file;
+}
+
+// === DEFINIR VARIÁVEIS PADRÃO ===
+if (!isset($table_name)) {
+    $table_name = 'mp_caixa';
+}
+
+// 4. Carregar controller
+$controller_file = $component_base . '/controller.hhvm';
+if (!file_exists($controller_file)) {
+    $controller_file = $component_base . '/controller.php';
+}
+
+if (file_exists($controller_file)) {
+    include_once $controller_file;
+}
+
+// 4.5 Carregar a chave do Google Maps
+if (function_exists('getKeyGoogleMaps')) {
+    $keyGoogleMaps = getKeyGoogleMaps($connection);
+} else {
+    $keyGoogleMaps = '';
+}
+
+// 5. Carregar view
+$view_file_hhvm = $component_base . '/' . $component_name . '.view.hhvm';
+$view_file_php = $component_base . '/' . $component_name . '.view.php';
+
+if (file_exists($view_file_hhvm)) {
+    include_once $view_file_hhvm;
+} elseif (file_exists($view_file_php)) {
+    include_once $view_file_php;
+}
+?>

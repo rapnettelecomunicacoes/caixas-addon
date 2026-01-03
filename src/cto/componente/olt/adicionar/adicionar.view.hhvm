@@ -1,0 +1,185 @@
+<?php
+  // A sessão já foi iniciada no app.hhvm
+?>
+
+<table width="100%" align="center">
+    <tr>
+        <td>
+            <h2 class="subtitle" align="center">OLT::INSERIR</h2>
+        </td>
+    </tr>
+</table>
+
+<div class="tabs is-toggle is-fullwidth" id="tab_barra">
+    <ul>
+        <li id="barra_pessoais">
+            <a>
+                <span class="icon is-small"><i class="fa fa-id-card-o"></i></span>
+                <span>Dados</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<form id="form" name="form" method="post" action="#" onsubmit="return verifica_form(this)" autocomplete="off">
+    <input type="hidden" name="_tipoAcao" id="_tipoAcao" value="ad" />
+    <input type="hidden" name="_route" id="_route" value="adicionarolt" />
+    <input type="hidden" name="olt" id="olt" value="<?= $NOME_OLT ?>" />
+
+    <table class="form-table">
+        <tbody>
+            <tr>
+                <td colspan="2"><strong>Dados do OLT</strong></td>
+            </tr>
+            <tr><td colspan="2"></td></tr>
+
+            <tr>
+                <td><strong>Nome OLT:</strong></td>
+                <td><input name="NOME_OLT" type="text" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>Número de Série:</strong></td>
+                <td><input name="NUMERO_SERIE" type="text" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>Modelo:</strong></td>
+                <td><input name="MODELO" type="text" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>Fabricante:</strong></td>
+                <td><input name="FABRICANTE" type="text" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>Data Instalação:</strong></td>
+                <td><input name="DATA_INSTALACAO" type="date" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>OLT Status:</strong></td>
+                <td><input name="OLT_STATUS" type="text" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>Endereço IP:</strong></td>
+                <td><input name="ENDERECO_IP" type="text" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>Localização:</strong></td>
+                <td><input name="LOCALIZACAO" type="text" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>Responsável Técnico:</strong></td>
+                <td><input name="RESPONSAVEL_TECNICO" type="text" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>Usuário:</strong></td>
+                <td><input name="USUARIO" type="text" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>Senha:</strong></td>
+                <td><input name="SENHA" type="password" value="" required /></td>
+            </tr>
+
+            <tr>
+                <td><strong>Porta SSH:</strong></td>
+                <td><input name="PORTASSH" type="text" value="" required /></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="form-actions">
+        <input name="btn_limpar" type="reset" class="button is-warning" value="Limpar">
+        <input name="btn_gravar" type="submit" class="button is-info" value="Gravar">
+    </div>
+</form>
+
+<style>
+    .form-table {
+        width: 100%;
+        margin: 0 auto;
+        border-collapse: collapse;
+    }
+
+    .form-table td {
+        padding: 5px; /* Reduz o espaçamento interno */
+        text-align: right;
+    }
+
+    .form-table input {
+        width: 100%;
+        padding: 6px; /* Menor padding para inputs */
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        margin-top: -10px; /* Se necessário, adicione uma pequena margem superior */
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: center; /* Centraliza os botões */
+        gap: 20px; /* Espaçamento entre os botões */
+        margin-top: 20px;
+    }
+
+    .form-actions .button {
+        display: flex;
+        justify-content: center;
+        align-items: center; /* Centraliza o texto verticalmente */
+        padding: 10px 20px;
+        border-radius: 4px;
+        font-size: 14px;
+        height: 40px; /* Define uma altura fixa */
+        line-height: normal; /* Evita que o texto fique desalinhado */
+    }
+
+    .button.is-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .button.is-warning {
+        background-color: #ffc107;
+        color: white;
+    }
+
+    .button.is-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    /* Responsividade para dispositivos móveis */
+    @media (max-width: 768px) {
+        .form-table td {
+            text-align: left;
+            display: block;
+            width: 100%;
+        }
+
+        .form-actions {
+            flex-direction: column; /* Coloca os botões em uma coluna */
+            gap: 10px;
+            justify-content: center; /* Centraliza os botões */
+            width: 100%; /* Os botões ocuparão toda a largura disponível */
+        }
+
+        .form-actions .button {
+            width: 100%; /* Botões ocupam 100% da largura */
+            padding: 12px; /* Aumenta o padding para melhorar a usabilidade */
+            font-size: 16px; /* Aumenta o tamanho da fonte para legibilidade */
+        }
+
+        .form-table input {
+            width: 100%; /* Inputs ocupam 100% da largura */
+            padding: 12px; /* Aumenta o padding dos inputs */
+            font-size: 16px; /* Aumenta o tamanho da fonte nos inputs */
+        }
+    }
+</style>

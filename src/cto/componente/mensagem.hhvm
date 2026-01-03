@@ -1,0 +1,32 @@
+<?php
+// INCLUI CLASSE DO ADDON-----------------------------------------------------------
+// A sessão já foi iniciada no app.hhvm
+
+if (!empty($textoResposta)){
+    $nomeAlerta = 'is-danger';
+} else {
+    $nomeAlerta = 'is-success';
+    $textoResposta = 'A a&ccedil;&atilde;o foi bem sucedida!';
+}
+?>
+
+<div id="mensagem-container" style="width: 100%; z-index: 99999; position: fixed; display: flex; flex-direction: column; padding: 15px; top: 0; left: 0; right: 0; text-align: center; align-items: center;">
+    <div id="mensagem" class="notification <?=$nomeAlerta?>" style="width: auto; display: inline-flex; opacity: 1; padding: 1.25rem 1.5rem; cursor: pointer;">
+        <h3><?=$textoResposta?></h3>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function () {
+    // Fecha o alerta ao clicar nele
+    $("#mensagem").click(function () {
+        $(this).fadeOut(300);
+    });
+
+    // Oculta automaticamente após 4 segundos
+    setTimeout(function () {
+        $("#mensagem").fadeOut(500);
+    }, 2000);
+});
+</script>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listar CTOs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .filter-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-item label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .filter-item input,
+        .filter-item select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .filter-item input:focus,
+        .filter-item select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .table-wrapper {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 14px;
+            color: #555;
+        }
+
+        table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        table tbody tr:nth-child(even) {
+            background-color: #fafbfc;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #0284c7;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h2>📍 Listar Caixas de Terminação Óptica (CTOs)</h2>
+                <p><?php echo isset($textoSubTitulo) ? $textoSubTitulo : 'Gerenciamento de CTOs da rede de fibra óptica'; ?></p>
+            </div>
+            <a href="?_route=painel" style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                display: inline-block;
+                white-space: nowrap;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='';">🏠 Painel Principal</a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat-card">
+            <div class="label">CTOs Cadastradas</div>
+            <div class="number"><?php echo isset($numeroCaixas) ? $numeroCaixas : '0'; ?></div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Portas Totais</div>
+            <div class="number"><?php echo isset($numeroPortas) ? $numeroPortas : '0'; ?></div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Portas Livres</div>
+            <div class="number"><?php echo isset($numeroPortasLivres) ? $numeroPortasLivres : '0'; ?></div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Portas Ativas</div>
+            <div class="number"><?php echo isset($numeroPortasAtivas) ? $numeroPortasAtivas : '0'; ?></div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <div class="filter-group">
+            <div class="filter-item">
+                <label for="buscarModelo">🔍 Buscar:</label>
+                <input 
+                    type="text" 
+                    id="buscarModelo" 
+                    placeholder="Digite o nome ou ID da CTO"
+                    onkeyup="filtrarTabela()"
+                >
+            </div>
+            <div class="filter-item">
+                <label for="buscarBairro">🏘️ Bairro:</label>
+                <input 
+                    type="text" 
+                    id="buscarBairro" 
+                    placeholder="Digite o bairro"
+                    onkeyup="filtrarTabela()"
+                >
+            </div>
+            <div class="filter-item">
+                <label for="buscarCidade">🏙️ Cidade:</label>
+                <input 
+                    type="text" 
+                    id="buscarCidade" 
+                    placeholder="Digite a cidade"
+                    onkeyup="filtrarTabela()"
+                >
+            </div>
+            <div class="filter-item">
+                <label for="buscarFiltro">📂 Filtro:</label>
+                <select id="buscarFiltro" onchange="filtrarTabela()">
+                    <option value="">Todas as caixas</option>
+                    <option value="ativa">Ativas</option>
+                    <option value="inativa">Inativas</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn btn-primary" onclick="adicionarCTO()">
+                ➕ Adicionar CTO
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+        <?php if (isset($resultado) && $resultado && mysqli_num_rows($resultado) > 0): ?>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="5%">ID</th>
+                        <th width="15%">Nome</th>
+                        <th width="20%">Endereço</th>
+                        <th width="10%">Tipo</th>
+                        <th width="8%">Cap.</th>
+                        <th width="8%">Sinal</th>
+                        <th width="12%">OLT</th>
+                        <th width="22%">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    while ($row = mysqli_fetch_assoc($resultado)): 
+                        $sinal = intval($row['sinal'] ?? 0);
+                        $statusClass = ($sinal >= 0) ? 'status-active' : 'status-inactive';
+                        $statusText = ($sinal >= 0) ? 'Bom' : 'Fraco';
+                    ?>
+                        <tr>
+                            <td><strong><?php echo $row['id']; ?></strong></td>
+                            <td><?php echo htmlspecialchars($row['nome'] ?? ''); ?></td>
+                            <td><?php echo htmlspecialchars($row['endereco'] ?? ''); ?></td>
+                            <td><?php echo htmlspecialchars($row['tipo'] ?? ''); ?></td>
+                            <td><?php echo htmlspecialchars($row['capacidade'] ?? '0'); ?> portas</td>
+                            <td><strong><?php echo $row['sinal'] ?? '0'; ?> dB</strong></td>
+                            <td><?php echo htmlspecialchars($row['olt'] ?? ''); ?></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-small btn-edit" onclick="editarCTO(<?php echo $row['id']; ?>)">
+                                        ✏️ Editar
+                                    </button>
+                                    <button class="btn-small btn-delete" onclick="excluirCTO(<?php echo $row['id']; ?>)">
+                                        🗑️ Deletar
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <div class="empty-state">
+                <p>📭 Nenhuma CTO cadastrada ainda</p>
+                <p>Clique em "Adicionar CTO" para começar</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script>
+function filtrarTabela() {
+    const busca = document.getElementById('buscarModelo').value.toLowerCase();
+    const bairro = document.getElementById('buscarBairro').value.toLowerCase();
+    const cidade = document.getElementById('buscarCidade').value.toLowerCase();
+    const filtro = document.getElementById('buscarFiltro').value;
+    const tabela = document.querySelector('table tbody');
+    
+    if (!tabela) return;
+    
+    const linhas = tabela.querySelectorAll('tr');
+    linhas.forEach(linha => {
+        const texto = linha.textContent.toLowerCase();
+        const enderecoColuna = linha.cells[2]?.textContent.toLowerCase() || '';
+        const status = linha.querySelector('.status-badge')?.textContent.toLowerCase() || '';
+        let mostrar = true;
+        
+        if (busca && !texto.includes(busca)) {
+            mostrar = false;
+        }
+        
+        if (bairro && !enderecoColuna.includes(bairro)) {
+            mostrar = false;
+        }
+        
+        if (cidade && !enderecoColuna.includes(cidade)) {
+            mostrar = false;
+        }
+        
+        if (filtro === 'ativa' && !status.includes('ativa')) {
+            mostrar = false;
+        } else if (filtro === 'inativa' && !status.includes('inativa')) {
+            mostrar = false;
+        }
+        
+        linha.style.display = mostrar ? '' : 'none';
+    });
+}
+
+function adicionarCTO() {
+    window.location.href = '?_route=adicionar';
+}
+
+function editarCTO(id) {
+    window.location.href = '?_route=editar&id=' + id;
+}
+
+function excluirCTO(id) {
+    if (confirm('Tem certeza que deseja deletar esta CTO?')) {
+        // Enviar requisição POST para deletar
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?_route=inicio';
+        
+        const inputId = document.createElement('input');
+        inputId.type = 'hidden';
+        inputId.name = 'id_deletar';
+        inputId.value = id;
+        
+        form.appendChild(inputId);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+
+</body>
+</html>

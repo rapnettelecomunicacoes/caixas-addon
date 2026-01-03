@@ -1,0 +1,26 @@
+<?php
+session_name('mka');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+echo "<h2>Debug Session</h2>";
+echo "Session ID: " . session_id() . "<br>";
+echo "Session Status: " . session_status() . "<br>";
+echo "<h3>\$_SESSION:</h3>";
+echo "<pre>";
+print_r($_SESSION);
+echo "</pre>";
+
+echo "<h3>\$_COOKIE:</h3>";
+echo "<pre>";
+print_r($_COOKIE);
+echo "</pre>";
+
+// Verificar variáveis de autenticação conhecidas
+echo "<h3>Variáveis de Auth:</h3>";
+$vars = ['mka_logado', 'MKA_Logado', 'user_id', 'usuario', 'id_usuario', 'logado'];
+foreach ($vars as $var) {
+    echo "$var: " . (isset($_SESSION[$var]) ? "SIM (" . $_SESSION[$var] . ")" : "NAO") . "<br>";
+}
+?>

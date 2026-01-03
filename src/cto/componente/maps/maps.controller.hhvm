@@ -1,0 +1,42 @@
+<?php
+    // Atualizacao do cliente
+    $_tipoAcao = (isset($_POST['_tipoAcao'])) ? $_POST['_tipoAcao'] : null;
+    $idClienteCaixa = (isset($_POST['idClienteCaixa'])) ? $_POST['idClienteCaixa'] : null;
+    $nomeCaixaEditar = (isset($_POST['nomeCaixaEditar'])) ? $_POST['nomeCaixaEditar'] : null;
+    $porta_splitter = (isset($_POST['porta_splitter'])) ? $_POST['porta_splitter'] : null;
+
+    if (isset($_POST['_tipoAcao']) && ($_tipoAcao != 'S')) {
+            switch ($_tipoAcao) {
+            case "adc":
+                $textoResposta = vincularCaixaCliente($connection, $idClienteCaixa, $nomeCaixaEditar, $porta_splitter, $_tipoAcao);
+                //
+                echo $textoResposta;
+                break;
+        }
+    } 
+
+    if (is_array($_POST['IDAll'])) {
+        foreach ($_POST['IDAll'] as $item) {
+            $arrayCaixas[] = $item;
+        }
+    }
+        
+    $ativoVisualizar = (isset($_POST['ativoVisualizar'])) ? $_POST['ativoVisualizar'] : null;
+    $todosMarcados = (isset($_POST['todosMarcados'])) ? $_POST['todosMarcados'] : null;
+    $enderecoCoordenadaNovo = (isset($_POST['enderecoCoordenadaNovo'])) ? $_POST['enderecoCoordenadaNovo'] : null;
+
+    $latitude = 0;
+    $longitude = 0;
+
+    $arrayCoordenadas = explode(',', $enderecoCoordenadaNovo);
+
+    if (is_numeric($arrayCoordenadas[0]) && is_numeric($arrayCoordenadas[0])) {
+        $latitude = $arrayCoordenadas[0];
+        $longitude = $arrayCoordenadas[1];
+    }
+
+
+    $idCliente = (isset($_POST['idCliente']) && ($ativoVisualizar == 1)) ? $_POST['idCliente'] : null;
+
+    $key_googlemaps = getKeyGoogleMaps($connection);
+?>

@@ -1,0 +1,43 @@
+<?php
+header('Cache-Control: no-cache');
+header('Content-type: application/xml; charset="utf-8"', true);
+
+include('../../config/database.hhvm');
+include('../../database/index.hhvm');
+include('../../models/client.hhvm');
+
+$caixas = (isset($_REQUEST['caixas'])) ? $_REQUEST['caixas'] : null;
+$idCliente = (isset($_REQUEST['idCliente'])) ? $_REQUEST['idCliente'] : null;
+$funcao = (isset($_REQUEST['funcao'])) ? $_REQUEST['funcao'] : null;
+$todosMarcados = (isset($_REQUEST['todosMarcados'])) ? $_REQUEST['todosMarcados'] : null;
+$dadosImportar = (isset($_REQUEST['dadosImportar'])) ? $_REQUEST['dadosImportar'] : null;
+
+if ($funcao == 'importarBKP') {
+  $ativoMigrado = 0;
+  $linhas = explode('#', $dadosImportar);
+
+  foreach ($linhas as $itemLinhas) {
+    $colunas = explode(';', $itemLinhas);
+
+    $NOME   =   $colunas[1];
+    $LATITUDE = $colunas[2];
+    $LONGITUDE = $colunas[3];
+    $ENDERECO = $colunas[5];
+    $TIPO = $colunas[6];
+    $CAPACIDADE = $colunas[7];
+    $SINAL = $colunas[8];
+    $OLT = $colunas[9];
+    $FSP = $colunas[10];
+
+    if ($NOME != '') {
+      adicionarCaixa($connection, $table_name, $NOME, $LATITUDE, $LONGITUDE, $ENDERECO, $TIPO, $CAPACIDADE, $SINAL, $OLT, $FSP);
+      $ativoMigrado = 1;
+    }
+  }
+
+  $retorno = array(
+    'ativoMigrado' => $ativoMigrado,
+  );
+}
+
+echo (json_encode($retorno));

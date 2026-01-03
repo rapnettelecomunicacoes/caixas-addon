@@ -1,0 +1,11 @@
+<?php
+  $Host = "127.0.0.1";
+  $user = "root";
+  $pass = "vertrigo";
+  $db_name = "mkradius";
+  //
+  $table_name = "mp_caixa";
+  $path_arquivos = '/opt/mk-auth/central/disco_virtual/';
+   
+?>
+

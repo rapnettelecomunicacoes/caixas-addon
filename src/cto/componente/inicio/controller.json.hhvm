@@ -1,0 +1,164 @@
+<?php
+  
+  header('Cache-Control: no-cache');
+  header('Content-type: application/xml; charset="utf-8"', true);
+
+  include('../../config/database.hhvm');
+  include('../../database/index.hhvm');
+  include('../../models/client.hhvm');
+
+  $caixas = (isset($_REQUEST['caixas'])) ? $_REQUEST['caixas'] : null;
+  $idCliente = (isset($_REQUEST['idCliente'])) ? $_REQUEST['idCliente'] : null;
+  $funcao = (isset($_REQUEST['funcao'])) ? $_REQUEST['funcao'] : null;
+  $todosMarcados = (isset($_REQUEST['todosMarcados'])) ? $_REQUEST['todosMarcados'] : null;
+  $dadosImportar = (isset($_REQUEST['dadosImportar'])) ? $_REQUEST['dadosImportar'] : null;
+  $olt = (isset($_REQUEST['olt'])) ? $_REQUEST['olt'] : null;
+  $nomeTabela = (isset($_REQUEST['nomeTabela'])) ? $_REQUEST['nomeTabela'] : null;
+
+
+
+  if ($funcao == 'criatTabelaOLT') {
+
+    $dados = criarTabelaMp_Olt($connection, 'mp_olt');
+
+    $ativoConsulta = '0';
+
+    if ($dados == 1) {    
+      $ativoConsulta = $dados;
+    }
+
+    $retorno = array(
+      'ativoConsulta' => $ativoConsulta,
+    );
+  } else if ($funcao == 'verificarTabelaOLTExiste') {
+
+    $dados = verificaTabelaExiste($connection, 'mp_olt');
+
+    $ativoConsulta = '0';
+
+    if ($dados == 1) {    
+      $ativoConsulta = $dados;
+    }
+
+    $retorno = array(
+      'ativoConsulta' => $ativoConsulta,
+    );
+  } else if ($funcao == 'consultarMpOlt') {
+
+    $dadosOLT = consultarOLT($connection, $olt);
+
+    $ativoConsulta = '0';
+
+    while ($row = mysqli_fetch_array($dadosOLT)) {    
+      $ativoConsulta = '1';
+    }
+
+    $retorno = array(
+      'ativoConsulta' => $ativoConsulta,
+    );
+  } else if ($funcao == 'consultar') {
+
+    $dadosCTO = tabelaCto($connection);
+
+    $ativoConsulta = '0';
+
+    while ($row = mysqli_fetch_array($dadosCTO)) {
+      $ativoConsulta = '1';
+    }
+
+    $retorno = array(
+      'ativoConsulta' => $ativoConsulta,
+    );
+  } else if ($funcao == 'migrar') {
+
+                                        $dadosCTO = tabelaCto($connection);
+
+                                        $ativoMigrado = '0';
+                                        
+                                        while ($row = mysqli_fetch_array($dadosCTO)) {
+                                          $arrayCoordenadas = explode(',', $row['coordenadas']);
+
+                                          $latitude = $arrayCoordenadas[0];
+                                          $longitude = $arrayCoordenadas[1];                                          
+
+                                          // VERIFICANDO SE JÁ FOI INCLUÍDO
+                                          $dadosCaixas = tabelaCaixa($connection, $table_name, null, $row['name']);        
+
+                                          $ativoEncontrado = 0;
+                                          while ($rowCaixa = mysqli_fetch_array($dadosCaixas)) {
+                                            print_r($rowCaixa);
+                                            $ativoEncontrado = 1;
+                                          }
+
+                                          if ($ativoEncontrado == 0) {
+                                            $result = encontrarOLT($connection, $row['olt_id']);
+                                            
+                                            $olt_row = mysqli_fetch_array($result, MYSQLI_ASSOC);
+
+                                            $stringEndereco = "" . utf8_decode($row['endereco']) . ", " . utf8_decode($row['numero']) . ", " . utf8_decode($row['bairro']) . ", " . utf8_decode($row['cidade']) . ", " . utf8_decode($row['estado']) . "";
+
+                                            adicionarCaixa($connection, $table_name, $row['name'], $latitude, $longitude, $stringEndereco, 'FTTH', $row['ports'], 0, $olt_row['maker'], $row['fsp']);
+                                            $ativoMigrado = '1';        
+                                                                               
+                                          }
+                                        
+                                        }
+
+                                        $retorno = array(
+                                          'ativoMigrado' => $ativoMigrado,
+                                        );
+  } else if ($funcao == 'coordenadas') {
+
+    $ativoEncontrado = 0;
+    // VERIFICANDO SE JÁ FOI INCLUÍDO            
+    $dadosCliente = tabelaCliente($connection, $table_name, null, null, 'nome');
+
+    while ($row = mysqli_fetch_array($dadosCliente)) {
+
+      if ((trim($row['coordenadas']) == '')  or ($row['coordenadas'] == '0') or (strlen($row['coordenadas']) <= 16)) {
+        $dadosCoordenadas = obterCoordenadas($connection, $row['endereco_res'] . ", " . $row['numero_res'] . ", " . $row['bairro_res'] . ", " . $row['cidade_res'] . ", " . $row['estado_res'] . ", " . $row['cep_res']);
+
+        if ($dadosCoordenadas['latitude'] == '0') {
+          $dadosCoordenadas = obterCoordenadas($connection, $row['cep_res'] . ", " . $row['numero_res']);
+        }
+
+        if ($dadosCoordenadas) {
+          $textoResposta = editarCliente($connection, $row['id'], $dadosCoordenadas['latitude'] . "," . $dadosCoordenadas['longitude']);
+
+          $ativoMigrado = 1;
+        }
+      }
+    }
+
+    $retorno = array(
+      'ativoMigrado' => $ativoMigrado,
+    );
+  } else if ($funcao == 'consultarCoordenadas') {
+
+    $numeroEncontrado = 0;
+    // VERIFICANDO SE JÁ FOI INCLUÍDO            
+    $dadosCliente = tabelaCliente($connection, $table_name, null, null, 'nome');
+
+    while ($row = mysqli_fetch_array($dadosCliente)) { 		           
+
+      if ((trim($row['coordenadas']) == '')  or ($row['coordenadas'] == '0') or (strlen($row['coordenadas']) <= 16)){
+        $dadosCoordenadas = obterCoordenadas($connection, $row['endereco_res'] . ", " . $row['numero_res'] . ", " . $row['bairro_res'] . ", " . $row['cidade_res'] . ", " . $row['estado_res'] . ", " . $row['cep_res']);
+
+        if ($dadosCoordenadas['latitude'] == '0') {
+          $dadosCoordenadas = obterCoordenadas($connection, $row['cep_res'] . ", " . $row['numero_res']);
+        }
+
+        if ($dadosCoordenadas) {
+          $numeroEncontrado++;
+        }
+      }
+    }
+
+    $retorno = array(
+      'numeroEncontrado' => $numeroEncontrado,
+      'data' => $dadosCoordenadas,
+    );
+  }
+
+echo (json_encode($retorno));
+?>

@@ -1,0 +1,141 @@
+<?php
+// Verifica se $dadosCaixa é válido antes do loop (compatibilidade PHP 8)
+if ($dadosCaixa && mysqli_num_rows($dadosCaixa) > 0) {
+    while ($row = mysqli_fetch_array($dadosCaixa)) {  
+?>
+    <form id="form" name="form" method="post" action="#" autocomplete="off">
+        <input type="hidden" name="_tipoAcao" id="_tipoAcao" value="ed" />
+        <input type="hidden" name="_route" id="_route" value="editar" />
+        <input type="hidden" name="ID" id="ID" value="<?= htmlspecialchars($row['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+
+        <!-- ID (Read-only) -->
+        <div class="form-group">
+            <label for="ID_display">ID:</label>
+            <input type="text" id="ID_display" value="<?= htmlspecialchars($row['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled>
+        </div>
+
+        <!-- Nome -->
+        <div class="form-group">
+            <label for="NOME">Nome da CTO:</label>
+            <input type="text" name="NOME" id="NOME" value="<?= htmlspecialchars($row['nome'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+        </div>
+
+        <!-- Latitude -->
+        <div class="form-group">
+            <label for="LATITUDE">Latitude:</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" name="LATITUDE" id="LATITUDE" value="<?= htmlspecialchars($row['latitude'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required style="flex: 1;">
+                <button type="button" class="map-button" onclick="mapa_get_individual('LATITUDE', 'LONGITUDE', 'google', '<?= htmlspecialchars($LATITUDEPADRAO ?? '', ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars($LONGITUDEPADRAO ?? '', ENT_QUOTES, 'UTF-8') ?>')">
+                    🗺️ Mapa
+                </button>
+            </div>
+        </div>
+
+        <!-- Longitude -->
+        <div class="form-group">
+            <label for="LONGITUDE">Longitude:</label>
+            <input type="text" name="LONGITUDE" id="LONGITUDE" value="<?= htmlspecialchars($row['longitude'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+        </div>
+
+        <!-- Endereço -->
+        <div class="form-group">
+            <label for="ENDERECO">Endereço:</label>
+            <textarea name="ENDERECO" id="ENDERECO" style="min-height: 60px;" required><?= htmlspecialchars($row['endereco'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+        </div>
+
+        <!-- Tipo -->
+        <div class="form-group">
+            <label for="TIPO">Tipo de CTO:</label>
+            <select name="TIPO" id="TIPO" required>
+                <option value="">-- Selecione o tipo --</option>
+                <option value="FTTA" <?php echo (($row['tipo'] ?? '') == "FTTA") ? 'selected' : ''; ?>>FTTA - Fibra até o armário</option>
+                <option value="FTTB" <?php echo (($row['tipo'] ?? '') == "FTTB") ? 'selected' : ''; ?>>FTTB - Fibra até o prédio</option>
+                <option value="FTTC" <?php echo (($row['tipo'] ?? '') == "FTTC") ? 'selected' : ''; ?>>FTTC - Fibra até a rua</option>
+                <option value="FTTD" <?php echo (($row['tipo'] ?? '') == "FTTD") ? 'selected' : ''; ?>>FTTD - Fibra até a porta</option>
+                <option value="FTTH" <?php echo (($row['tipo'] ?? '') == "FTTH") ? 'selected' : ''; ?>>FTTH - Fibra até o domicílio</option>
+                <option value="FTTN" <?php echo (($row['tipo'] ?? '') == "FTTN") ? 'selected' : ''; ?>>FTTN - Fibra até o nó</option>
+                <option value="FTTO" <?php echo (($row['tipo'] ?? '') == "FTTO") ? 'selected' : ''; ?>>FTTO - Fibra até o escritório</option>
+                <option value="FTTP" <?php echo (($row['tipo'] ?? '') == "FTTP") ? 'selected' : ''; ?>>FTTP - Fibra até o poste</option>
+                <option value="FTTX" <?php echo (($row['tipo'] ?? '') == "FTTX") ? 'selected' : ''; ?>>FTTX - Outras fibra até X</option>
+                <option value="CTO" <?php echo (($row['tipo'] ?? '') == "CTO") ? 'selected' : ''; ?>>CTO - Caixa de terminação óptica</option>
+                <option value="PON" <?php echo (($row['tipo'] ?? '') == "PON") ? 'selected' : ''; ?>>PON - Passive Optical Network</option>
+                <option value="LAN" <?php echo (($row['tipo'] ?? '') == "LAN") ? 'selected' : ''; ?>>LAN - Local Area Network</option>
+                <option value="ETH" <?php echo (($row['tipo'] ?? '') == "ETH") ? 'selected' : ''; ?>>ETH - Ethernet</option>
+                <option value="CEO" <?php echo (($row['tipo'] ?? '') == "CEO") ? 'selected' : ''; ?>>CEO - Central de equipamentos ópticos</option>
+            </select>
+        </div>
+
+        <!-- Capacidade -->
+        <div class="form-group">
+            <label for="CAPACIDADE">Capacidade (portas):</label>
+            <input type="number" name="CAPACIDADE" id="CAPACIDADE" value="<?= htmlspecialchars($row['capacidade'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required min="1">
+        </div>
+
+        <!-- Capacity Usage -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin-bottom: 18px; color: white;">
+            <div style="margin-bottom: 12px;">
+                <label style="color: white; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; margin: 0;">📊 Utilização de Portas</label>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px;">
+                        <?php 
+                        $capacidade = intval($row['capacidade'] ?? 0);
+                        $clientesCount = (isset($clientesCadastrados) ? count($clientesCadastrados) : 0) + (isset($adicionalCadastrados) ? count($adicionalCadastrados) : 0);
+                        echo $clientesCount;
+                        ?>
+                    </div>
+                    <div style="font-size: 12px; opacity: 0.9;">Utilizadas</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px;">
+                        <?php echo ($capacidade - $clientesCount); ?>
+                    </div>
+                    <div style="font-size: 12px; opacity: 0.9;">Disponíveis</div>
+                </div>
+            </div>
+            <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="flex: 1; height: 8px; background: rgba(255,255,255,0.3); border-radius: 4px; overflow: hidden;">
+                        <div style="height: 100%; width: <?php echo ($capacidade > 0 ? (($clientesCount / $capacidade) * 100) : 0); ?>%; background: white; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="font-size: 11px; min-width: 40px; text-align: right;">
+                        <?php echo ($capacidade > 0 ? round(($clientesCount / $capacidade) * 100) : 0); ?>%
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="SINAL">Sinal (dBm):</label>
+            <input type="text" name="SINAL" id="SINAL" value="<?= htmlspecialchars($row['sinal'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Ex: -19">
+        </div>
+
+        <!-- OLT -->
+        <div class="form-group">
+            <label for="OLT">OLT:</label>
+            <input type="text" name="OLT" id="OLT" value="<?= htmlspecialchars($row['olt'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Ex: OLT - ZTE">
+        </div>
+
+        <!-- FSP -->
+        <div class="form-group">
+            <label for="FSP">FSP:</label>
+            <input type="text" name="FSP" id="FSP" value="<?= htmlspecialchars($row['fsp'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-group">
+            <button type="submit" class="btn btn-primary">💾 Salvar Alterações</button>
+            <button type="reset" class="btn btn-secondary">🔄 Limpar Formulário</button>
+        </div>
+    </form>
+
+<?php
+    }
+} else {
+?>
+    <div class="empty-state">
+        <p>📭 CTO não encontrada</p>
+    </div>
+<?php
+}
+?>

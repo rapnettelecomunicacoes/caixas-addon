@@ -1,0 +1,45 @@
+<?php
+    // VERIFICA SE O USUARIO ESTA LOGADO --------------------------------------------------------------
+    if (session_status() === PHP_SESSION_NONE) {
+        session_name('mka');
+        session_start();
+    }
+    if (!isset($_SESSION['mka_logado']) && !isset($_SESSION['MKA_Logado'])) exit('Acesso negado... <a href="/admin/login.php">Fazer Login</a>');
+
+    $get_passo = (isset($_REQUEST['_route'])) ? $_REQUEST['_route'] : null;
+
+    switch($get_passo) {
+        case "adicionar": 
+            include "adicionar/index.hhvm";
+            //
+            break;
+        case "editar": 
+            include "editar/index.hhvm";
+            //
+            break;			
+        case "backup": 
+            include "backup/index.hhvm";
+            //
+            break;   
+        case "adicionarolt": 
+            include "olt/adicionar/index.hhvm";
+            //
+            break;
+        case "editarolt": 
+            include "olt/editar/index.hhvm";
+            //
+            break;
+        case "mapadeclientes":
+            include "maps/index.php";
+            //
+            break;
+        case "painel":
+            include "inicio/index.hhvm";
+            //
+            break;                
+        default:
+            include "inicio/index.hhvm"; 
+            break;
+    }
+	
+

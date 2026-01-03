@@ -1,0 +1,72 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// === FUNÇÃO PARA FAZER UNSERIALIZE MANUAL DE SESSÃO ===
+if (!function_exists('unserialize_session')) {
+    function unserialize_session($data) {
+        $vars = array();
+        $a = preg_split("/(\w+)\|/", $data, -1, PREG_SPLIT_DELIM_CAPTURE);
+        for ($i = 1; $i < count($a); $i += 2) {
+            $k = $a[$i];
+            $v = unserialize($a[$i + 1]);
+            $vars[$k] = $v;
+        }
+        return $vars;
+    }
+}
+
+// === CARREGAR DADOS DE SESSÃO MANUALMENTE ===
+if (empty($_SESSION)) {
+    $_SESSION = [];
+
+    foreach ($_COOKIE as $name => $value) {
+        if (strpos($name, '_admin-') === 0 && strpos($name, '-MKA') !== false) {
+            $sess_file = '/var/tmp/sess_' . $value;
+            
+            if (file_exists($sess_file)) {
+                $content = file_get_contents($sess_file);
+                if (!empty($content)) {
+                    $_SESSION = unserialize_session($content);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+echo "<h2>Debug - Conexão com Banco</h2>";
+
+$addon_base = dirname(__FILE__);
+echo "<h3>Addon base: $addon_base</h3>";
+
+// Incluir configurações de banco de dados
+$db_config_file = $addon_base . '/src/cto/config/database.hhvm';
+echo "Database config file: $db_config_file<br>";
+echo "Existe? " . (file_exists($db_config_file) ? "SIM" : "NAO") . "<br>";
+
+if (file_exists($db_config_file)) {
+    echo "<h3>Incluindo database.hhvm...</h3>";
+    include_once $db_config_file;
+    echo "Host: " . (isset($Host) ? $Host : 'NAO DEFINIDO') . "<br>";
+    echo "User: " . (isset($user) ? $user : 'NAO DEFINIDO') . "<br>";
+    echo "DB: " . (isset($db_name) ? $db_name : 'NAO DEFINIDO') . "<br>";
+}
+
+// Incluir índice do banco de dados
+$db_index_file = $addon_base . '/src/cto/database/index.hhvm';
+echo "<h3>Database index file: $db_index_file</h3>";
+echo "Existe? " . (file_exists($db_index_file) ? "SIM" : "NAO") . "<br>";
+
+if (file_exists($db_index_file)) {
+    echo "Incluindo index.hhvm...<br>";
+    include_once $db_index_file;
+}
+
+echo "<h3>Connection status:</h3>";
+echo "Connection var defined? " . (isset($connection) ? "SIM" : "NAO") . "<br>";
+if (isset($connection)) {
+    echo "Connection type: " . gettype($connection) . "<br>";
+    echo "Connection value: " . (is_object($connection) ? "Object: " . get_class($connection) : $connection) . "<br>";
+}
+?>

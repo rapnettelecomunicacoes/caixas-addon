@@ -1,0 +1,63 @@
+<?php
+$hostname = "127.0.0.1";
+$bancodedados = "mkradius";
+$usuario = "root";
+$senha = "vertrigo";
+$mysqli = new mysqli($hostname, $usuario, $senha, $bancodedados);
+if ($mysqli->connect_errno) {
+   echo "Falha ao conectar: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error;
+}
+
+//pega chave do google
+$query = "SELECT valor FROM sis_opcao WHERE nome = 'key_googlemaps'";
+$response = $mysqli->query($query) or die($mysqli->error);
+
+$apiKey = $response;
+$atualizados = 0;
+$nao_atualizados = 0;
+$inalterados = 0;
+
+$sql = "SELECT id, endereco_res, numero_res, bairro_res, cidade_res, estado_res, cep_res, coordenadas FROM sis_cliente";
+$con_sql = $mysqli->query($sql) or die($mysqli->error);
+
+while ($dados_sql = $con_sql->fetch_array()) {
+   $id = $dados_sql['id'];
+   $logradouro = $dados_sql['endereco_res'];
+   $numero = $dados_sql['numero_res'];
+   $bairro = $dados_sql['bairro_res'];
+   $cidade = $dados_sql['cidade_res'];
+   $uf = $dados_sql['estado_res'];
+   $cep = $dados_sql['cep_res'];
+   $ver_coord = $dados_sql['coordenadas'];
+   $resul_coord = strlen($ver_coord);
+
+   if ($resul_coord <= '15') {
+      $endA = $numero . " + " . $logradouro . " + " . $bairro . " + " . $cidade . " + " . $uf . " + " . $cep;
+      $endB = str_replace(" ", "+", $endA);
+      $address = utf8_encode($endB);
+      $geo = file_get_contents('https://maps.googleapis.com/maps/api/geocode/json?key=' . $apiKey . '&address=' . urlencode($address) . '&sensor=false');
+      $geo = json_decode($geo, true);
+      
+      if ($geo['status'] == 'OK') {
+         $latitude = $geo['results'][0]['geometry']['location']['lat'];
+         $longitude = $geo['results'][0]['geometry']['location']['lng'];
+         $result_final = $latitude . ", " . $longitude;
+         $sql = "UPDATE sis_cliente SET coordenadas = '" . $result_final . "' where Id = '" . $id . "'";
+         $mysqli->query($sql) or die($mysqli->error);
+         echo "Cadastro atualizado.";
+         $atualizados++;
+      } else {
+         echo "Cadastro com erro.";
+         $nao_atualizados++;
+      }
+      echo @$id . "- " . @$result_final;
+   } else {
+      echo "Cadastro ja atualizado.";
+      $inalterados++;
+   }
+}
+echo "R E S U M O   D A   O P E R A C A O";
+echo "Cadastros atualizados: " .@$atualizados;
+echo "Cadastros com erro no endereco: " .@$nao_atualizados;
+echo "Cadastros com coordenadas ok: " .@$inalterados;
+?>

@@ -1,0 +1,225 @@
+<?php
+
+        header( 'Cache-Control: no-cache' );    
+        header( 'Content-type: application/xml; charset="utf-8"', true );
+        
+        include('../../config/database.hhvm');
+	include('../../database/index.hhvm');
+	include('../../models/client.hhvm');
+
+        $caixas = (isset($_REQUEST['caixas'])) ? $_REQUEST['caixas'] : null;
+        $idCliente = (isset($_REQUEST['idCliente'])) ? $_REQUEST['idCliente'] : null;
+        $tipo = (isset($_REQUEST['tipo'])) ? $_REQUEST['tipo'] : null;
+        $todosMarcados = (isset($_REQUEST['todosMarcados'])) ? $_REQUEST['todosMarcados'] : null;
+        
+        
+        if ($tipo == 'pai'){
+                
+
+                $arrayCaixas = json_decode($caixas);
+
+                $retorno['markers'] = array();
+
+                if ($idCliente){
+                        $dadosCliente = tabelaCliente($connection, $table_name, null, $idCliente, null ); 
+                        
+                        while ($row = mysqli_fetch_array($dadosCliente)){                                                
+                                
+                                $zoom = 18;
+
+                                $coordenadas = explode(",", $row['coordenadas']);                                                
+
+                                array_push($retorno['markers'], array(
+                                        'latitude' => $coordenadas[0],
+                                        'longitude' => $coordenadas[1],
+                                        'capacidade' =>  0,
+                                        'label' => " ",
+                                        'clientes_ativos' => 0,
+                                        'content' => "<center><strong>".$row['nome']."</strong></center><br><br><center><strong>".$row['caixa_herm']."</strong></center><br><br><strong>Porta: </strong>".$row['porta_splitter']."<br><strong>Latitude:</strong> ".$coordenadas[0]."</strong><br><strong>Longitude:</strong> ".$coordenadas[1],
+                                        'icone' => getImagemCliente($connection, $row['caixa_herm'], $row['id'], $row['login']), 
+                                        'zoom' => $zoom,
+                                        'latitudeInicial' => $coordenadas[0],
+                                        'longitudeInicial' => $coordenadas[1],
+                                ) );                           
+                        }
+                }
+        
+                foreach ($arrayCaixas as $item){
+                        $dadosCaixa = tabelaCaixa($connection, $table_name, $item);
+                        $zoom = 0;
+
+                        if ($dadosCaixa){
+                                
+                                
+        
+                                $latitudeInicial = 0;
+                                $longitudeInicial = 0;   
+
+                                while ($row = mysqli_fetch_array($dadosCaixa)){ 
+                                        
+                                        if ($zoom == 0){
+                                                $zoom = 15;
+                                        }
+
+                                        if (($latitudeInicial == 0) && ($longitudeInicial == 0)){                                        
+                                                if ($todosMarcados == 1){
+                                                        $dadosProvedor = tabelaProvedor($connection);
+
+                                                        while ($rowP = mysqli_fetch_array($dadosProvedor)) { 
+                                                                $arrayCoordenadas = explode( ',', $rowP['coordenadas']);
+                                                        
+                                                                $latitudeInicial = $arrayCoordenadas[0];
+                                                                $longitudeInicial = $arrayCoordenadas[1];        
+                                                                $zoom = 15;
+                                                        }    
+                                                } else {
+                                                        $latitudeInicial = $row['latitude'];
+                                                        $longitudeInicial = $row['longitude'];  
+                                                }
+                                        }
+                                        
+                                                
+
+                                        $dadosCliente = tabelaCliente($connection, $table_name, $row['nome'], null, null ); 
+                                        $numeroCliente = 0;
+        
+                                        while ($rowCliente = mysqli_fetch_array($dadosCliente)){ 
+                                                $numeroCliente++;                              
+                                        }
+
+                                        $dadosAdicional = tabelaAdicional($connection, $table_name, $row['nome'], null, null ); 
+                                        
+                                        while ($rowAdicional = mysqli_fetch_array($dadosAdicional)){ 
+                                                $numeroCliente++;                              
+                                        }
+        
+                                        $percentualPortas = ($row['capacidade'] > 0) ? ($numeroCliente * 100 / $row['capacidade']) : 0;
+					
+					    
+	   				if ($row['tipo'] == "LAN" OR $row['tipo'] == "ETH") {
+					 	if ($numeroCliente <= $row['capacidade'] - 3){ 
+							$img ="point_verde_eth.png";
+						}
+						if ($numeroCliente == $row['capacidade'] - 2){ 
+							$img ="point_amarelo_eth.png";
+						}
+						if ($numeroCliente == $row['capacidade'] - 1){ 
+							$img ="point_laranja_eth.png";
+						}
+						if ($numeroCliente >= $row['capacidade']){ 
+							$img ="point_vermelho_eth.png";
+						}
+                                        }elseif ($row['tipo'] == "CEO"){
+                                                        $img = "point_ceo.png";
+                                        }else {
+						if ($numeroCliente <= $row['capacidade'] - 3){ 
+							$img ="point_verde.png";
+						}
+						if ($numeroCliente == $row['capacidade'] - 2){ 
+							$img ="point_amarelo.png";
+						}
+						if ($numeroCliente == $row['capacidade'] - 1){ 
+							$img ="point_laranja.png";
+						}
+						if ($numeroCliente >= $row['capacidade']){ 
+							$img ="point_vermelho.png";
+						}
+					}
+										
+					$onclick = "document.getElementById('divRemoverMarcador').click()";
+
+					array_push($retorno['markers'], array(
+                                                'id' => $row['id'],
+                                                'latitude' => $row['latitude'],
+                                                'longitude' => $row['longitude'],
+                                                'capacidade' =>  $row['capacidade'],
+                                                'label' => "".(($row['capacidade'] > 0 && $row['tipo'] != "CEO") ? $numeroCliente : ' ')."",
+                                                'clientes_ativos' => $numeroCliente,
+                                                'content' => "<div id='labelMsg'><center><strong>".$row['nome']."</strong></center><br><strong>Capacidade:</strong> ".$row['capacidade']."</strong><br><strong>Clientes Ativos:</strong> ".$numeroCliente."</div>",
+                                                'icone' => $img,  
+                                                'zoom' => $zoom,
+                                                'latitudeInicial' => $latitudeInicial,
+                                                'longitudeInicial' => $longitudeInicial,
+                                        ) );
+					
+                                }
+        
+                                
+                        }
+                }
+        } else if ($tipo == 'filho'){
+                $arrayCaixas = json_decode($caixas);
+
+                $retorno['markers'] = array();
+        
+                foreach ($arrayCaixas as $item){
+                        $dadosCaixa = tabelaCaixa($connection, $table_name, $item);
+                
+                        if ($dadosCaixa){                        
+        
+                                while ($row = mysqli_fetch_array($dadosCaixa)){ 
+                                        // CLIENTES
+                                        $dadosCliente = tabelaCliente($connection, $table_name, $row['nome'], null, null ); 
+                                                                               
+                                        while ($rowCliente = mysqli_fetch_array($dadosCliente)){
+                                                
+                                                $coordenadas = explode(",", $rowCliente['coordenadas']);
+
+                                                if ($rowCliente['nome'] == ' '){
+                                                        $nome = 'Não Informado';
+                                                } else {
+                                                        $nome = $rowCliente['nome'];
+                                                }
+        
+                                                array_push($retorno['markers'], array(
+                                                        'latitude' => $coordenadas[0],
+                                                        'longitude' => $coordenadas[1],
+                                                        'capacidade' =>  0,
+                                                        'label' => " ",
+                                                        'clientes_ativos' => 0,
+                                                        'content' => "<div id='labelMsg'><center><strong>".$nome."</strong></center><br><br><center><strong>".$rowCliente['caixa_herm']."</strong></center><br><br><strong>Porta: </strong>".$rowCliente['porta_splitter']."<br><strong>Latitude:</strong> ".$coordenadas[0]."</strong><br><strong>Longitude:</strong> ".$coordenadas[1]."</div>",                                                        
+                                                        'icone' => getImagemCliente($connection, $rowCliente['caixa_herm'], $rowCliente['id'],$rowCliente['login'] ),   
+                                                ) );                           
+                                        }          
+
+                                        // CLIENTES ADICIONAIS                                        
+                                        $dadosAdcional = tabelaAdicional($connection, $table_name, $row['nome'], null, null ); 
+                                          
+                                        while ($rowAdicional = mysqli_fetch_array($dadosAdcional)){
+                                                
+                                                $coordenadas = explode(",", $rowAdicional['coordenadas']);
+
+                                                if ($rowAdicional['nome'] == ' '){
+                                                        $nome = 'Não Informado';
+                                                } else {
+                                                        $nome = $rowAdicional['nome'];
+                                                }
+                                                
+                                                array_push($retorno['markers'], array(
+                                                        'latitude' => $coordenadas[0],
+                                                        'longitude' => $coordenadas[1],
+                                                        'capacidade' =>  0,
+                                                        'label' => " ",
+                                                        'clientes_ativos' => 0,
+                                                        'content' => "<div id='labelMsg'><center><strong>".$nome."</strong></center><br><br><center><strong>".$rowAdicional['caixa_herm']."</strong></center><br><br><strong>Porta: </strong>".$rowAdicional['porta_splitter']."<br><strong>Latitude:</strong> ".$coordenadas[0]."</strong><br><strong>Longitude:</strong> ".$coordenadas[1]."</div>",                                                        
+                                                        'icone' => getImagemAdicional($connection, $rowAdicional['caixa_herm'], $rowAdicional['id'],  $rowAdicional['username']),   
+                                                ) );                           
+                                        }          
+                                }
+
+                        }
+
+                        
+                }
+        }
+       
+
+       
+                
+       
+        echo (json_encode( $retorno ));
+
+
+
+
+?>

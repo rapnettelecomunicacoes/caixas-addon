@@ -1,0 +1,7 @@
+<form role="form" id="modalRespostaCliente" action="" method="post">
+<input type="hidden" name="textoResposta" id="textoResposta" value="<?=$textoResposta?>" />		
+<input type="hidden" name="tipoResposta" id="tipoResposta" value="1" />	
+<input type="hidden" name="_route" id="_route" value="editar" />
+<input type="hidden" name="ID" id="ID" value="<?=$ID?>" />	
+</form>
+<script>document.getElementById('modalRespostaCliente').submit()</script>

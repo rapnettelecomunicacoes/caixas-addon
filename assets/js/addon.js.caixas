@@ -1,0 +1,3 @@
+        /** GERENCIADOR FTTH - Caixas **/
+const caixas = window.location.protocol + "//" + window.location.hostname + (window.location.port ? ':' + window.location.port: '') + "/admin/addons/caixas/";
+add_menu.opcoes('{"plink": "' + caixas + '?_route=painel", "ptext": "Gerenciador FTTH"}');

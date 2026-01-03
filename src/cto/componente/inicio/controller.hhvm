@@ -1,0 +1,118 @@
+<?php
+   // A sessão já foi iniciada no app.hhvm
+// CRUD
+
+$_route = (isset($_POST['_route'])) ? $_POST['_route'] : null;
+$_tipoAcao = (isset($_POST['_tipoAcao'])) ? $_POST['_tipoAcao'] : null;
+$ID = (isset($_POST['ID'])) ? $_POST['ID'] : null;
+$id_deletar = (isset($_POST['id_deletar'])) ? $_POST['id_deletar'] : null;
+
+
+$padraoTipoOrdem = ( $_route == 'editar' ) ? 'nome' : 'id';
+$tipoOrdem = (isset($_POST['tipoOrdem'])) ? $_POST['tipoOrdem'] : $padraoTipoOrdem;
+$textoResposta = (isset($_POST['textoResposta'])) ? $_POST['textoResposta'] : null;
+$tipoResposta = (isset($_POST['tipoResposta'])) ? $_POST['tipoResposta'] : null;
+
+
+// CONTADOR SUBTITULO
+$numeroCaixas = 0;
+$numeroPortas = 0;
+$numeroPortasLivres = 0;
+$numeroPortasAtivas = 0;
+
+// Processar exclusão via POST (clique no botão deletar)
+if (isset($id_deletar) && !empty($id_deletar)) {
+    $resultado_exclusao = excluirCaixa($connection, $table_name, $id_deletar);
+    // Redirecionar para atualizar a lista
+    header("Location: ?_route=inicio");
+    exit();
+}
+
+if (isset($_POST['_tipoAcao']) && ($_tipoAcao != 'S')) {
+
+    switch ($_tipoAcao) {
+
+        case "ex":
+            $textoResposta = excluirCaixa($connection, $table_name, $ID);
+            include "src/cto/componente/resposta.hhvm";
+            break;
+            
+        case "exTodos":
+            if (is_array($_POST['IDAll'])) {
+                foreach ($_POST['IDAll'] as $item) {
+                    $textoResposta = excluirCaixa($connection, $table_name, $item);
+                    if ($textoResposta != '') {
+                        $textoResposta += '<br>';
+                    }
+                }
+            }
+            include "src/cto/componente/resposta.hhvm";
+            break;
+    }
+}
+
+if ($tipoResposta == 1) {
+    include "src/cto/componente/mensagem.hhvm";
+}
+
+
+
+// VERIFICAR SE A TABELA EXISTE E CRIAR UMA NOVA         
+$resultTabelaExiste = verificaTabelaExiste($connection, $table_name);
+
+if (!$resultTabelaExiste) {
+    $resposta = criarTabelaMp_Caixas($connection, $table_name);
+    if ($resposta == "") {
+        $resposta = adicionarCaixa($connection, $table_name, 'CTO-111', '-3.118958', '-59.999630', 'Rua X, 99', 'FTTH', '8', '-18,00', 'CIANET', '1/1/1');
+    }
+} else {
+    $resposta = alterTabelaMp_Caixas($connection, $table_name);
+}
+
+// === CARREGAR DADOS DAS CAIXAS ===
+$dadosCaixa = tabelaCaixa($connection, $table_name, null);
+$propriedadesCaixa = carregarPropriedades($dadosCaixa);
+
+// === PROCESSAR DADOS PARA EXIBIÇÃO ===
+if ($dadosCaixa && mysqli_num_rows($dadosCaixa) > 0) {
+
+    $dadosCliente = tabelaCliente($connection, $table_name, null, null, $tipoOrdem);
+    $dadosAdicional = tabelaAdicional($connection, $table_name, null, null, $tipoOrdem);
+    
+    // Resetar cursor para contar
+    mysqli_data_seek($dadosCaixa, 0);
+    
+    while ($item = mysqli_fetch_array($dadosCaixa)) {
+        if (($item['nome'] ?? '') != '') {
+            // CONTADOR PARA SUBTITULO
+            $dadosClienteContador = tabelaCliente($connection, $table_name, $item['nome'], null, null);
+            if ($dadosClienteContador && mysqli_num_rows($dadosClienteContador) > 0) {
+                while ($rowCliente = mysqli_fetch_array($dadosClienteContador)) {
+                    $numeroPortasAtivas++;
+                }
+            }
+
+            $dadosAdicionalContador = tabelaAdicional($connection, $table_name, $item['nome'], null, null);
+            if ($dadosAdicionalContador && mysqli_num_rows($dadosAdicionalContador) > 0) {
+                while ($rowAdicional = mysqli_fetch_array($dadosAdicionalContador)) {
+                    $numeroPortasAtivas++;
+                }
+            }
+
+            $numeroCaixas++;
+            $numeroPortas += $item['capacidade'] ?? 0;
+            $numeroPortasLivres = $numeroPortas - $numeroPortasAtivas;
+            $nomeCaixaEditar = $item['nome'] ?? '';
+        }
+    }
+
+    // === RESETAR CURSOR PARA A VIEW ===
+    mysqli_data_seek($dadosCaixa, 0);
+    $resultado = $dadosCaixa;
+} else {
+    $resultado = null;
+}
+
+// SUBTITULO
+$textoSubTitulo = 'CAIXAS: ' . $numeroCaixas . ' | CAPACIDADE: ' . $numeroPortas . ' | LIVRES: ' . $numeroPortasLivres;
+?>

@@ -1,0 +1,119 @@
+<?php
+    // A sessão já foi iniciada no app.hhvm
+    // CRUD
+
+$_route = (isset($_POST['_route'])) ? $_POST['_route'] : null;
+$_tipoAcao = (isset($_POST['_tipoAcao'])) ? $_POST['_tipoAcao'] : null;
+$ID = (isset($_POST['ID'])) ? $_POST['ID'] : null;
+$NOME = (isset($_POST['NOME'])) ? $_POST['NOME'] : null;
+$LATITUDE = (isset($_POST['LATITUDE'])) ? $_POST['LATITUDE'] : null;
+$LONGITUDE = (isset($_POST['LONGITUDE'])) ? $_POST['LONGITUDE'] : null;
+$ENDERECO = (isset($_POST['ENDERECO'])) ? $_POST['ENDERECO'] : null;
+$TIPO = (isset($_POST['TIPO'])) ? $_POST['TIPO'] : null;
+$CAPACIDADE = (isset($_POST['CAPACIDADE'])) ? $_POST['CAPACIDADE'] : null;
+$SINAL = (isset($_POST['SINAL'])) ? $_POST['SINAL'] : null;
+$OLT = (isset($_POST['OLT'])) ? $_POST['OLT'] : null;
+$FSP = (isset($_POST['FSP'])) ? $_POST['FSP'] : null;
+
+$padraoTipoOrdem = ( $_route == 'editar' ) ? 'nome' : 'id';
+$tipoOrdem = (isset($_POST['tipoOrdem'])) ? $_POST['tipoOrdem'] : $padraoTipoOrdem;
+$ativoVisualizar = (isset($_POST['ativoVisualizar'])) ? $_POST['ativoVisualizar'] : 'id';
+$LATITUDEPADRAO = (isset($_POST['LATITUDEPADRAO'])) ? $_POST['LATITUDEPADRAO'] : null;
+$LONGITUDEPADRAO = (isset($_POST['LONGITUDEPADRAO'])) ? $_POST['LONGITUDEPADRAO'] : null;
+
+$padraoTipoOrdem = ( $_route == 'editar' ) ? 'nome' : 'id';
+$tipoOrdem = (isset($_POST['tipoOrdem'])) ? $_POST['tipoOrdem'] : $padraoTipoOrdem;
+
+
+
+// CONTADOR SUBTITULO
+$numeroCaixas = 0;
+$numeroPortas = 0;
+$numeroPortasLivres = 0;
+$numeroPortasAtivas = 0;
+$tipoResposta = 0;
+if (isset($_POST['_tipoAcao']) && ($_tipoAcao != 'S')) {
+
+    switch ($_tipoAcao) {
+        case "ad":
+            $textoResposta = adicionarCaixa($connection, $table_name, $NOME, $LATITUDE, $LONGITUDE, $ENDERECO, $TIPO, $CAPACIDADE, $SINAL, $OLT, $FSP);
+            
+            // Se foi bem-sucedido (resposta vazia), redirecionar para listagem
+            if (empty($textoResposta)) {
+                header("Location: ?_route=inicio");
+                exit();
+            } else {
+                // Se houve erro, mostrar mensagem
+                include "src/cto/componente/resposta.hhvm";
+            }
+            break;
+        case "adc":
+            // Adicionar e manter na página
+            $textoResposta = adicionarCaixa($connection, $table_name, $NOME, $LATITUDE, $LONGITUDE, $ENDERECO, $TIPO, $CAPACIDADE, $SINAL, $OLT, $FSP);
+            include "src/cto/componente/resposta.hhvm";
+            break;
+    }
+}
+if ($tipoResposta == 1) {
+    include "src/cto/componente/mensagem.hhvm";
+}
+
+
+// VERIFICAR SE A TABELA EXISTE E CRIAR UMA NOVA	 
+$resultTabelaExiste = verificaTabelaExiste($connection, $table_name);
+
+if (!$resultTabelaExiste) {
+    $resposta = criarTabelaMp_Caixas($connection, $table_name);
+    if ($resposta == "") {
+        $resposta = adicionarCaixa($connection, $table_name, 'CTO-111', '-3.118958', '-59.999630', 'Rua X, 99', 'FTTH', '8', '-18,00', 'CIANET', '1/1/1');
+    }
+} else {
+    $resposta = alterTabelaMp_Caixas($connection, $table_name);
+}
+
+
+$dadosCaixa = tabelaCaixa($connection, $table_name, $ID);
+$propriedadesCaixa = carregarPropriedades($dadosCaixa);
+
+
+
+if ($dadosCaixa && mysqli_num_rows($dadosCaixa) > 0) {
+
+    $dadosCliente = tabelaCliente($connection, $table_name, null, null, $tipoOrdem);
+    $dadosAdicional = tabelaAdicional($connection, $table_name, null, null, $tipoOrdem);
+    //
+    while ($item = mysqli_fetch_array($dadosCaixa)) {
+        if (($item['nome'] ?? '') != '') {
+            // CONTADOR PARA SUBTITULO
+            $dadosClienteContador = tabelaCliente($connection, $table_name, $item['nome'], null, null);
+
+            if ($dadosClienteContador && mysqli_num_rows($dadosClienteContador) > 0) {
+                while ($rowCliente = mysqli_fetch_array($dadosClienteContador)) {
+                    $numeroPortasAtivas++;
+                }
+            }
+
+            $dadosAdicionalContador = tabelaAdicional($connection, $table_name, $item['nome'], null, null);
+
+            if ($dadosAdicionalContador && mysqli_num_rows($dadosAdicionalContador) > 0) {
+                while ($rowAdicional = mysqli_fetch_array($dadosAdicionalContador)) {
+                    $numeroPortasAtivas++;
+                }
+            }
+
+            $numeroCaixas++;
+            $numeroPortas += $item['capacidade'] ?? 0;
+            $numeroPortasLivres = $numeroPortas - $numeroPortasAtivas;
+            //
+            $nomeCaixaEditar = $item['nome'] ?? '';
+        }
+    }
+
+    $dadosCaixa = tabelaCaixa($connection, $table_name, $ID, null);
+}
+
+// SUBTITULO	
+$textoSubTitulo = 'CAIXAS: ' . $numeroCaixas . ' | CAPACIDADE: ' . $numeroPortas . ' | LIVRES: ' . $numeroPortasLivres;
+
+?>
+
