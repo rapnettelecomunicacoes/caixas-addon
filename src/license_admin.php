@@ -456,6 +456,72 @@ $status_licenca = $license->getLicenseStatus();
     </style>
 </head>
 <body>
+    <script>
+        window.switchTab = function(tabName) {
+            // Esconder todas as abas
+            var contents = document.querySelectorAll('.tab-content');
+            contents.forEach(function(content) {
+                content.classList.remove('active');
+            });
+            
+            // Remover classe active de todos os botões
+            var buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+            
+            // Mostrar aba selecionada
+            document.getElementById(tabName).classList.add('active');
+            
+            // Adicionar classe active ao botão clicado
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+        };
+        
+        window.copiarChave = function() {
+            var chave = document.getElementById('chave-gerada').textContent;
+            navigator.clipboard.writeText(chave).then(function() {
+                alert('Chave copiada para o clipboard!');
+            }).catch(function(err) {
+                console.error('Erro ao copiar: ', err);
+            });
+        };
+        
+        // Ao carregar a página, ativar a aba correta baseado no parâmetro URL
+        document.addEventListener('DOMContentLoaded', function() {
+            var params = new URLSearchParams(window.location.search);
+            var abaParam = params.get('aba');
+            
+            if (abaParam) {
+                // Esconder todas as abas
+                var contents = document.querySelectorAll('.tab-content');
+                contents.forEach(function(content) {
+                    content.classList.remove('active');
+                });
+                
+                // Remover classe active de todos os botões
+                var buttons = document.querySelectorAll('.tab-btn');
+                buttons.forEach(function(btn) {
+                    btn.classList.remove('active');
+                });
+                
+                // Ativar a aba do parâmetro
+                var targetTab = document.getElementById(abaParam);
+                if (targetTab) {
+                    targetTab.classList.add('active');
+                    
+                    // Ativar o botão correspondente
+                    var tabButtons = document.querySelectorAll('.tab-btn');
+                    tabButtons.forEach(function(btn) {
+                        if (btn.getAttribute('onclick') === "window.switchTab('" + abaParam + "')") {
+                            btn.classList.add('active');
+                        }
+                    });
+                }
+            }
+        });
+    </script>
     <div class="container">
         <!-- Header -->
         <div class="header">
@@ -863,72 +929,6 @@ $status_licenca = $license->getLicenseStatus();
             </div>
         </div>
 
-    <script>
-        window.switchTab = function(tabName) {
-            // Esconder todas as abas
-            var contents = document.querySelectorAll('.tab-content');
-            contents.forEach(function(content) {
-                content.classList.remove('active');
-            });
-            
-            // Remover classe active de todos os botões
-            var buttons = document.querySelectorAll('.tab-btn');
-            buttons.forEach(function(btn) {
-                btn.classList.remove('active');
-            });
-            
-            // Mostrar aba selecionada
-            document.getElementById(tabName).classList.add('active');
-            
-            // Adicionar classe active ao botão clicado
-            if (event && event.target) {
-                event.target.classList.add('active');
-            }
-        };
-        
-        window.copiarChave = function() {
-            var chave = document.getElementById('chave-gerada').textContent;
-            navigator.clipboard.writeText(chave).then(function() {
-                alert('Chave copiada para o clipboard!');
-            }).catch(function(err) {
-                console.error('Erro ao copiar: ', err);
-            });
-        };
-        
-        // Ao carregar a página, ativar a aba correta baseado no parâmetro URL
-        document.addEventListener('DOMContentLoaded', function() {
-            var params = new URLSearchParams(window.location.search);
-            var abaParam = params.get('aba');
-            
-            if (abaParam) {
-                // Esconder todas as abas
-                var contents = document.querySelectorAll('.tab-content');
-                contents.forEach(function(content) {
-                    content.classList.remove('active');
-                });
-                
-                // Remover classe active de todos os botões
-                var buttons = document.querySelectorAll('.tab-btn');
-                buttons.forEach(function(btn) {
-                    btn.classList.remove('active');
-                });
-                
-                // Ativar a aba do parâmetro
-                var targetTab = document.getElementById(abaParam);
-                if (targetTab) {
-                    targetTab.classList.add('active');
-                    
-                    // Ativar o botão correspondente
-                    var tabButtons = document.querySelectorAll('.tab-btn');
-                    tabButtons.forEach(function(btn) {
-                        if (btn.getAttribute('onclick') === "window.switchTab('" + abaParam + "')") {
-                            btn.classList.add('active');
-                        }
-                    });
-                }
-            }
-        });
-    </script>
     </script>
 </body>
 </html>
