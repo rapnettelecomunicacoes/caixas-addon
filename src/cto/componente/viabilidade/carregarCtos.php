@@ -12,23 +12,32 @@ try {
     // Carregar configuração do banco
     if (file_exists($db_file)) {
         require_once $db_file;
+        if (isset($connection)) {
+            $conn = $connection;
+        }
     }
 
-    // Conectar ao banco de dados
-    if (!isset($Host)) {
+    // Se não conseguiu pela inclusão, tentar conexão direta
+    if (!isset($conn) || !$conn) {
+        // Valores padrão
         $Host = 'localhost';
-    }
-    if (!isset($user)) {
         $user = 'root';
-    }
-    if (!isset($pass)) {
         $pass = 'vertrigo';
-    }
-    if (!isset($db_name)) {
         $db_name = 'mkradius';
+        $socket = '/var/run/mysqld/mysqld.sock';
+
+        // Verificar socket
+        if (!file_exists($socket)) {
+            $socket = null;
+        }
+
+        // Conectar com socket ou TCP
+        if ($socket) {
+            $conn = @mysqli_connect('localhost', $user, $pass, $db_name, 0, $socket);
+        } else {
+            $conn = @mysqli_connect($Host, $user, $pass, $db_name);
+        }
     }
-    
-    $conn = @mysqli_connect($Host, $user, $pass, $db_name);
 
     if (!$conn) {
         throw new Exception('Erro ao conectar ao banco de dados: ' . mysqli_connect_error());
