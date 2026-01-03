@@ -827,7 +827,7 @@ $status_licenca = $license->getLicenseStatus();
                                 
                                 <div class="info-item">
                                     <div class="info-label">Data de Criação</div>
-                                    <div class="info-value"><?php echo $status_licenca['criacao']; ?></div>
+                                    <div class="info-value"><?php echo isset($status_licenca['criacao']) ? $status_licenca['criacao'] : 'N/A'; ?></div>
                                 </div>
                                 
                                 <div class="info-item">
@@ -842,12 +842,12 @@ $status_licenca = $license->getLicenseStatus();
                                 
                                 <div class="info-item">
                                     <div class="info-label">Servidor</div>
-                                    <div class="info-value"><?php echo $status_licenca['servidor']; ?></div>
+                                    <div class="info-value"><?php echo isset($status_licenca['servidor']) ? $status_licenca['servidor'] : 'N/A'; ?></div>
                                 </div>
                                 
                                 <div class="info-item">
                                     <div class="info-label">Instalado em</div>
-                                    <div class="info-value"><?php echo $status_licenca['instalado_em']; ?></div>
+                                    <div class="info-value"><?php echo isset($status_licenca['instalado_em']) ? $status_licenca['instalado_em'] : $status_licenca['instalada_em'] ?? 'N/A'; ?></div>
                                 </div>
                                 
                                 <?php if (isset($status_licenca['dias_restantes'])): ?>
