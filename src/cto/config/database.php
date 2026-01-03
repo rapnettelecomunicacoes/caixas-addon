@@ -19,20 +19,25 @@ if (!file_exists($socket)) {
     $socket = null;
 }
 
-// Tentar conectar com tratamento de erro
-if ($socket) {
-    @$connection = mysqli_connect('localhost', $user, $pass, $db_name, 0, $socket);
-} else {
-    @$connection = mysqli_connect($Host, $user, $pass, $db_name);
-}
-
-// Verificar conexão
-if (!$connection) {
-    error_log("Erro de conexão ao banco: " . mysqli_connect_error(), 3, dirname(__FILE__) . '/../../database/db_error.log');
-}
-
-// Set charset
-if ($connection) {
-    mysqli_set_charset($connection, "utf8mb4");
+// Tentar conectar usando novo mysqlnd driver (devolvendo object)
+try {
+    if ($socket) {
+        // Usar mysqli com sintaxe orientada a objetos
+        $connection = new mysqli('localhost', $user, $pass, $db_name, 0, $socket);
+    } else {
+        $connection = new mysqli($Host, $user, $pass, $db_name);
+    }
+    
+    // Verificar conexão
+    if ($connection->connect_error) {
+        error_log("Erro de conexão ao banco: " . $connection->connect_error);
+        $connection = null;
+    } else {
+        // Set charset
+        $connection->set_charset("utf8mb4");
+    }
+} catch (Exception $e) {
+    error_log("Exceção ao conectar ao banco: " . $e->getMessage());
+    $connection = null;
 }
 ?>

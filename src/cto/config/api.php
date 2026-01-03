@@ -22,12 +22,12 @@ if (empty($google_maps_api_key)) {
         if (file_exists($db_file)) {
             require_once $db_file;
             
-            if (isset($db_linker) && $db_linker->isConnected()) {
+            if (isset($connection) && (is_object($connection) || is_resource($connection))) {
                 $sql = "SELECT valor FROM sis_opcao WHERE nome = 'key_googlemaps' LIMIT 1";
-                $result = $db_linker->query($sql);
+                $result = $connection->query($sql);
                 
-                if ($result && mysqli_num_rows($result) > 0) {
-                    $row = mysqli_fetch_assoc($result);
+                if ($result && $result->num_rows > 0) {
+                    $row = $result->fetch_assoc();
                     $google_maps_api_key = trim($row['valor']);
                 }
             }
@@ -48,18 +48,29 @@ function getGoogleMapsApiKey() {
     $connection = isset($GLOBALS['connection']) ? $GLOBALS['connection'] : null;
     
     // Tentar obter do banco de dados primeiro
-    if ($connection) {
+    if ($connection && (is_object($connection) || is_resource($connection))) {
         $nome = "key_googlemaps";
         $table_name = "sis_opcao";
         
-        $result = @mysqli_query($connection, "SELECT valor FROM $table_name WHERE nome = '" . addslashes($nome) . "' LIMIT 1");
-        if ($result && mysqli_num_rows($result) > 0) {
-            while ($row = mysqli_fetch_array($result)) {
+        // Usar prepared statement
+        $sql = "SELECT valor FROM $table_name WHERE nome = ? LIMIT 1";
+        $stmt = $connection->prepare($sql);
+        
+        if ($stmt) {
+            $stmt->bind_param("s", $nome);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result && $result->num_rows > 0) {
+                $row = $result->fetch_assoc();
                 $valor = $row['valor'] ?? '';
+                $stmt->close();
+                
                 if (!empty($valor)) {
                     return $valor;
                 }
             }
+            $stmt->close();
         }
     }
     
@@ -77,11 +88,38 @@ function getGoogleMapsApiKey() {
 
 // Função para salvar a chave da API
 function setGoogleMapsApiKey($key) {
-    // Usar $GLOBALS para acessar a variável global
-    $connection = isset($GLOBALS['connection']) ? $GLOBALS['connection'] : null;
+    // Tentar múltiplas formas de obter conexão
+    $connection = null;
+    
+    // Primeiro, tentar $GLOBALS
+    if (isset($GLOBALS['connection'])) {
+        $test_conn = $GLOBALS['connection'];
+        // Verificar se é um mysqli object ou resource
+        if (is_object($test_conn) || is_resource($test_conn)) {
+            $connection = $test_conn;
+        }
+    }
+    
+    // Se não encontrou, tentar carregar banco de dados
+    if (!$connection) {
+        $db_file = dirname(__FILE__) . '/database.php';
+        if (file_exists($db_file)) {
+            require_once $db_file;
+            // Verificar se a variável connection foi definida
+            if (isset($connection) && (is_object($connection) || is_resource($connection))) {
+                // Conexão carregada com sucesso
+            } else {
+                error_log("✗ Não foi possível estabelecer conexão com banco de dados via database.php");
+                return false;
+            }
+        } else {
+            error_log("✗ Arquivo database.php não encontrado em: $db_file");
+            return false;
+        }
+    }
     
     if (!$connection) {
-        error_log("✗ Conexão com banco não disponível");
+        error_log("✗ Conexão com banco não disponível após tentar todas as fontes");
         return false;
     }
     
@@ -90,29 +128,74 @@ function setGoogleMapsApiKey($key) {
         $table_name = "sis_opcao";
         $valor = trim($key);
         
-        // Verificar se já existe
-        $check = @mysqli_query($connection, "SELECT id FROM $table_name WHERE nome = '" . addslashes($nome) . "' LIMIT 1");
-        
-        if ($check && mysqli_num_rows($check) > 0) {
-            // Atualizar
-            $sql = "UPDATE $table_name SET valor = '" . addslashes($valor) . "' WHERE nome = '" . addslashes($nome) . "'";
-        } else {
-            // Inserir
-            $sql = "INSERT INTO $table_name (nome, valor) VALUES ('" . addslashes($nome) . "', '" . addslashes($valor) . "')";
-        }
-        
-        error_log("Executando SQL: $sql");
-        $result = @mysqli_query($connection, $sql);
-        
-        if ($result) {
-            error_log("✓ API configurada com sucesso");
-            return true;
-        } else {
-            error_log("✗ Erro SQL: " . mysqli_error($connection));
+        // Validar chave antes de salvar
+        if (strlen($valor) < 10) {
+            error_log("✗ Chave de API inválida: muito curta (comprimento: " . strlen($valor) . ")");
             return false;
         }
+        
+        // Usar prepared statements para evitar SQL injection
+        // Verificar se já existe
+        $check_sql = "SELECT id FROM $table_name WHERE nome = ?";
+        $stmt = $connection->prepare($check_sql);
+        
+        if (!$stmt) {
+            error_log("✗ Erro ao preparar SQL (check): " . $connection->error);
+            return false;
+        }
+        
+        $stmt->bind_param("s", $nome);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result && $result->num_rows > 0) {
+            // Atualizar
+            $update_sql = "UPDATE $table_name SET valor = ? WHERE nome = ?";
+            $stmt = $connection->prepare($update_sql);
+            
+            if (!$stmt) {
+                error_log("✗ Erro ao preparar SQL (update): " . $connection->error);
+                return false;
+            }
+            
+            $stmt->bind_param("ss", $valor, $nome);
+            $exec = $stmt->execute();
+            
+            if ($exec) {
+                error_log("✓ Chave da API do Google Maps atualizada com sucesso");
+                $stmt->close();
+                return true;
+            } else {
+                error_log("✗ Erro ao executar UPDATE: " . $connection->error);
+                $stmt->close();
+                return false;
+            }
+        } else {
+            // Inserir
+            $insert_sql = "INSERT INTO $table_name (nome, valor) VALUES (?, ?)";
+            $stmt = $connection->prepare($insert_sql);
+            
+            if (!$stmt) {
+                error_log("✗ Erro ao preparar SQL (insert): " . $connection->error);
+                return false;
+            }
+            
+            $stmt->bind_param("ss", $nome, $valor);
+            $exec = $stmt->execute();
+            
+            if ($exec) {
+                error_log("✓ Chave da API do Google Maps inserida com sucesso");
+                $stmt->close();
+                return true;
+            } else {
+                error_log("✗ Erro ao executar INSERT: " . $connection->error);
+                $stmt->close();
+                return false;
+            }
+        }
     } catch (Exception $e) {
-        error_log("✗ Exceção: " . $e->getMessage());
+        error_log("✗ Exceção ao salvar API: " . $e->getMessage());
         return false;
     }
 }
+?>
