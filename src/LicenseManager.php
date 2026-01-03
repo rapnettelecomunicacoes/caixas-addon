@@ -115,6 +115,65 @@ class LicenseManager {
     }
     
     /**
+     * Gera uma nova chave de licença aleatória
+     */
+    public function generateLicense($cliente, $dias = 365, $forever = false, $email = '', $provedor = '') {
+        // Gerar chave aleatória no formato XXXX-XXXX-XXXX-XXXX
+        $chave = $this->generateRandomKey();
+        
+        // Calcular expiração
+        if ($forever) {
+            $expiracao = date('Y-m-d', strtotime('+10 years'));
+        } else {
+            $expiracao = date('Y-m-d', strtotime("+$dias days"));
+        }
+        
+        // Dados da licença
+        $licenseData = [
+            'instalada' => true,
+            'chave' => $chave,
+            'cliente' => $cliente,
+            'email' => $email,
+            'provedor' => $provedor,
+            'expiracao' => $expiracao,
+            'dias' => $dias,
+            'criacao' => date('Y-m-d H:i:s'),
+            'instalada_em' => date('Y-m-d H:i:s'),
+            'servidor' => gethostname()
+        ];
+        
+        // Salvar no arquivo
+        if (file_put_contents($this->licenseFile, json_encode($licenseData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+            chmod($this->licenseFile, 0644);
+            $this->licenseData = $licenseData;
+            return [
+                'sucesso' => true, 
+                'mensagem' => 'Licença gerada com sucesso',
+                'chave' => $chave,
+                'cliente' => $cliente,
+                'expiracao' => $expiracao
+            ];
+        } else {
+            return ['erro' => true, 'mensagem' => 'Erro ao gerar licença'];
+        }
+    }
+    
+    /**
+     * Gera uma chave aleatória no formato XXXX-XXXX-XXXX-XXXX
+     */
+    private function generateRandomKey() {
+        $chars = 'ABCDEF0123456789';
+        $key = '';
+        for ($i = 0; $i < 4; $i++) {
+            for ($j = 0; $j < 4; $j++) {
+                $key .= $chars[rand(0, strlen($chars) - 1)];
+            }
+            if ($i < 3) $key .= '-';
+        }
+        return $key;
+    }
+    
+    /**
      * Remove licença
      */
     public function removeLicense() {
