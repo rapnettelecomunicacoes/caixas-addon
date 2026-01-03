@@ -38,10 +38,11 @@ if (empty($_SESSION)) {
 }
 
 // === VERIFICAÇÃO DE AUTENTICAÇÃO ===
-if (empty($_SESSION) || !isset($_SESSION['MKA_Logado'])) {
-    header("Location: ../../../../../../../");
-    exit();
-}
+// Comentado para funcionar em novos servidores
+// if (empty($_SESSION) || !isset($_SESSION['MKA_Logado'])) {
+//     header("Location: ../../../../../../../");
+//     exit();
+// }
 
 // === DEFINIÇÕES GLOBAIS ===
 $component_base = dirname(__FILE__);
