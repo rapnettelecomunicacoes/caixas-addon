@@ -3,7 +3,7 @@
 # ============================================================================
 # INSTALADOR AUTOMÁTICO - GERENCIADOR FTTH v2.0
 # Autor: Patrick Nascimento
-# Data: 2 de Janeiro de 2026 - VERSÃO 3.2 (Corrigido sed)
+# Data: 2 de Janeiro de 2026 - VERSÃO 3.3 (sed simplificado)
 # ============================================================================
 
 # Cores para output
@@ -120,13 +120,18 @@ Alias /api /opt/mk-auth/api
 EOFCONF
         print_success "api.conf criado"
     else
-        # Atualizar socket no arquivo existente usando # como delimitador
-        # Isso evita problemas com as barras no caminho do socket
+        # Atualizar socket no arquivo existente
+        # Usar uma substituição simples e direta
         if grep -q "SetHandler.*proxy:unix:" "$API_CONF"; then
-            # Escapar as barras para usar em substituição
-            PHP_SOCKET_ESCAPED=$(echo "$PHP_SOCKET" | sed 's/\//\\\//g')
-            sed -i "s#SetHandler.*proxy:unix:[^|]*#SetHandler \"proxy:unix:${PHP_SOCKET_ESCAPED}\"#g" "$API_CONF"
-            print_success "Socket atualizado no api.conf"
+            # Criar arquivo temporário com o socket correto
+            sed "s|proxy:unix:[^|]*|proxy:unix:${PHP_SOCKET}|g" "$API_CONF" > "${API_CONF}.tmp"
+            if [ -f "${API_CONF}.tmp" ]; then
+                mv "${API_CONF}.tmp" "$API_CONF"
+                print_success "Socket atualizado no api.conf"
+            else
+                print_error "Erro ao atualizar socket no api.conf"
+                return 1
+            fi
         else
             print_warning "Padrão de socket não encontrado no api.conf"
         fi
@@ -137,9 +142,14 @@ EOFCONF
         if apache2ctl configtest 2>/dev/null | grep -q "Syntax OK"; then
             apache2ctl graceful 2>/dev/null || true
             print_success "Apache recarregado com sucesso"
+            return 0
         else
             print_warning "Erro na configuração do Apache (verifique manualmente com: apache2ctl configtest)"
+            return 0
         fi
+    else
+        print_info "Apache não encontrado (não recarregado)"
+        return 0
     fi
 }
 
