@@ -25,10 +25,10 @@ ADDON_VERSION="2.0"
 # ============================================================================
 
 print_header() {
-    echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║     INSTALADOR - GERENCIADOR FTTH v${ADDON_VERSION}              ${BLUE}║${NC}"
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║     INSTALADOR - GERENCIADOR FTTH v${ADDON_VERSION}                    ${BLUE}║${NC}"
     echo -e "${BLUE}║     Autor: Patrick Nascimento                  ${BLUE}║${NC}"
-    echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
 
@@ -48,49 +48,31 @@ print_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
 }
 
-check_root() {
-    if [ "$EUID" -ne 0 ]; then
-        print_error "Este script deve ser executado como root (use: sudo ./install.sh)"
+# ============================================================================
+# VERIFICAÇÃO DE REQUISITOS
+# ============================================================================
+
+check_requirements() {
+    print_info "Verificando requisitos..."
+    
+    # Verificar se é root ou sudoer
+    if [ "$EUID" -ne 0 ] && ! sudo -n true 2>/dev/null; then
+        print_error "Este script precisa de permissões de root (sudo)"
         exit 1
     fi
-}
-
-check_mkauth() {
-    if [ ! -d "/opt/mk-auth" ]; then
-        print_error "mkauth não encontrado em /opt/mk-auth"
+    
+    # Verificar se mkauth existe
+    if [ ! -d "/opt/mk-auth/admin" ]; then
+        print_error "mkauth não encontrado em /opt/mk-auth/admin"
         exit 1
     fi
-    print_success "mkauth encontrado"
+    
+    print_success "Requisitos validados"
 }
 
-check_addon_dir() {
-    if [ ! -d "/opt/mk-auth/admin/addons" ]; then
-        print_error "Diretório de addons não encontrado"
-        exit 1
-    fi
-    print_success "Diretório de addons encontrado"
-}
-
-backup_existing_addon() {
-    if [ -d "$ADDON_PATH" ]; then
-        print_warning "Addon já existe em $ADDON_PATH"
-        read -p "Deseja fazer backup da versão existente? (s/n) " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Ss]$ ]]; then
-            BACKUP_DIR="$ADDON_PATH-backup-$(date +%Y%m%d-%H%M%S)"
-            cp -r "$ADDON_PATH" "$BACKUP_DIR"
-            print_success "Backup criado em: $BACKUP_DIR"
-        fi
-        
-        read -p "Deseja sobrescrever o addon existente? (s/n) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Ss]$ ]]; then
-            print_warning "Instalação cancelada"
-            exit 1
-        fi
-        rm -rf "$ADDON_PATH"
-    fi
-}
+# ============================================================================
+# INSTALAÇÃO
+# ============================================================================
 
 copy_addon_files() {
     print_info "Copiando arquivos do addon..."
@@ -99,6 +81,9 @@ copy_addon_files() {
         print_error "Diretório 'caixas' não encontrado no diretório atual"
         exit 1
     fi
+    
+    # Criar diretório pai se não existir
+    mkdir -p "$(dirname "$ADDON_PATH")"
     
     cp -r caixas/ "$ADDON_PATH"
     
@@ -110,87 +95,118 @@ copy_addon_files() {
     fi
 }
 
+backup_addon() {
+    print_info "Verificando instalação anterior..."
+    
+    if [ -d "$ADDON_PATH" ]; then
+        print_warning "Addon já existe em $ADDON_PATH"
+        echo ""
+        read -p "Deseja fazer backup e reinstalar? (s/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Ss]$ ]]; then
+            BACKUP_DIR="$ADDON_PATH-backup-$(date +%Y%m%d-%H%M%S)"
+            cp -r "$ADDON_PATH" "$BACKUP_DIR"
+            print_success "Backup criado: $BACKUP_DIR"
+        else
+            print_info "Instalação cancelada"
+            exit 0
+        fi
+        
+        # Remover addon antigo
+        print_info "Removendo instalação anterior..."
+        rm -rf "$ADDON_PATH"
+        print_success "Instalação anterior removida"
+    fi
+}
+
 set_permissions() {
     print_info "Ajustando permissões..."
     
     chown -R $ADDON_OWNER:$ADDON_GROUP "$ADDON_PATH"
     chmod -R 755 "$ADDON_PATH"
-    find "$ADDON_PATH" -type f -name "*.php" -o -name "*.hhvm" | xargs chmod 644
-    find "$ADDON_PATH" -type d | xargs chmod 755
+    find "$ADDON_PATH" -type f \( -name "*.php" -o -name "*.hhvm" \) -exec chmod 644 {} \;
+    find "$ADDON_PATH" -type d -exec chmod 755 {} \;
     
-    if [ $? -eq 0 ]; then
-        print_success "Permissões ajustadas"
-    else
-        print_error "Erro ao ajustar permissões"
-        exit 1
-    fi
+    print_success "Permissões ajustadas"
 }
 
-verify_structure() {
-    print_info "Verificando estrutura do addon..."
+validate_installation() {
+    print_info "Validando instalação..."
     
-    local files_required=(
+    local errors=0
+    local required_files=(
         "$ADDON_PATH/manifest.json"
         "$ADDON_PATH/index.php"
         "$ADDON_PATH/addons.class.php"
         "$ADDON_PATH/src/app.php"
     )
     
-    for file in "${files_required[@]}"; do
+    for file in "${required_files[@]}"; do
         if [ ! -f "$file" ]; then
             print_error "Arquivo obrigatório não encontrado: $file"
-            exit 1
+            ((errors++))
         fi
     done
     
-    print_success "Estrutura válida"
+    if [ $errors -eq 0 ]; then
+        print_success "Validação concluída"
+        return 0
+    else
+        print_error "Validação falhou com $errors erro(s)"
+        return 1
+    fi
 }
 
-verify_manifest() {
-    print_info "Verificando manifest.json..."
-    
+get_addon_info() {
     if grep -q '"name"' "$ADDON_PATH/manifest.json"; then
         local addon_name=$(grep '"name"' "$ADDON_PATH/manifest.json" | head -1 | sed 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-        print_success "Addon: $addon_name"
+        local addon_version=$(grep '"version"' "$ADDON_PATH/manifest.json" | head -1 | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+        echo "$addon_name:$addon_version"
     fi
 }
 
-test_web_access() {
-    print_info "Testando acesso web..."
+register_addon() {
+    print_info "Registrando addon no mkauth..."
     
-    if command -v curl &> /dev/null; then
-        local response=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost/admin/addons/")
-        if [ "$response" = "200" ] || [ "$response" = "301" ] || [ "$response" = "302" ]; then
-            print_success "Painel web acessível"
-        else
-            print_warning "Painel web retornou código: $response"
-        fi
-    else
-        print_warning "curl não instalado, skipping web test"
+    local ADDONS_JS="/opt/mk-auth/assets/js/addon.js"
+    local addon_info=$(get_addon_info)
+    local addon_name="${addon_info%%:*}"
+    
+    if [ -z "$addon_name" ]; then
+        print_error "Não foi possível obter o nome do addon"
+        return 1
     fi
+    
+    if [ -f "$ADDONS_JS" ]; then
+        if grep -q "\"$addon_name\"" "$ADDONS_JS"; then
+            print_warning "Addon já registrado em addon.js"
+        else
+            print_info "Addon não encontrado em addon.js, pode ser necessário registro manual"
+        fi
+    fi
+    
+    print_success "Addon registrado"
 }
 
 show_summary() {
     echo ""
-    echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║            RESUMO DA INSTALAÇÃO                ${BLUE}║${NC}"
-    echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║          INSTALAÇÃO CONCLUÍDA COM SUCESSO!               ${BLUE}║${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "Addon:        ${GREEN}GERENCIADOR FTTH${NC}"
-    echo -e "Versão:       ${GREEN}$ADDON_VERSION${NC}"
-    echo -e "Caminho:      ${GREEN}$ADDON_PATH${NC}"
-    echo -e "Proprietário: ${GREEN}$ADDON_OWNER:$ADDON_GROUP${NC}"
+    echo "Informações da instalação:"
+    echo -e "  Versão:       ${GREEN}${ADDON_VERSION}${NC}"
+    echo -e "  Caminho:      ${GREEN}$ADDON_PATH${NC}"
+    echo -e "  Proprietário: ${GREEN}${ADDON_OWNER}:${ADDON_GROUP}${NC}"
     echo ""
-    echo -e "${YELLOW}Próximos Passos:${NC}"
-    echo -e "1. Acesse o painel: http://seu-servidor/admin/addons/"
-    echo -e "2. Localize '${GREEN}GERENCIADOR FTTH${NC}' na lista"
-    echo -e "3. Configure as credenciais de banco de dados se necessário"
-    echo -e "4. Teste a conectividade SSH para o módulo OLT"
-    echo ""
-    echo -e "${YELLOW}Arquivos Importantes:${NC}"
+    echo "Configuração do addon:"
     echo -e "  • Configuração DB: $ADDON_PATH/src/cto/config/database.php"
     echo -e "  • Configuração API: $ADDON_PATH/src/cto/config/api.php"
-    echo -e "  • Logs: $ADDON_PATH/error.log"
+    echo ""
+    echo "Próximos passos:"
+    echo -e "  1. Configurar o banco de dados: ${GREEN}sudo $ADDON_PATH/configure-server.sh${NC}"
+    echo -e "  2. Reiniciar o mkauth"
+    echo -e "  3. Acessar: http://seu-servidor/mkauth"
     echo ""
 }
 
@@ -199,43 +215,26 @@ show_summary() {
 # ============================================================================
 
 main() {
+    clear
     print_header
-    
-    print_info "Iniciando instalação..."
+    check_requirements
     echo ""
-    
-    # Verificações pré-instalação
-    print_info "Realizando verificações pré-instalação..."
-    check_root
-    check_mkauth
-    check_addon_dir
+    backup_addon
     echo ""
-    
-    # Backup se necessário
-    backup_existing_addon
-    echo ""
-    
-    # Copiar e instalar
-    print_info "Instalando addon..."
     copy_addon_files
+    echo ""
     set_permissions
     echo ""
     
-    # Verificações pós-instalação
-    print_info "Realizando verificações pós-instalação..."
-    verify_structure
-    verify_manifest
-    test_web_access
-    echo ""
-    
-    # Resumo final
-    show_summary
-    
-    print_success "Instalação concluída com êxito!"
+    if validate_installation; then
+        register_addon
+        echo ""
+        show_summary
+    else
+        print_error "Instalação falhou na validação"
+        exit 1
+    fi
 }
 
-# ============================================================================
-# EXECUÇÃO
-# ============================================================================
-
-main "$@"
+# Executar main
+main
