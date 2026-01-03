@@ -1,96 +1,107 @@
 <?php
 /**
- * GERENCIADOR DE LICENÇA SIMPLIFICADO
- * Funciona com arquivos JSON, sem dependência de banco de dados
+ * SISTEMA DE LICENCIAMENTO - GERENCIADOR FTTH v2.0
+ * Gerador de Chaves de Licença - Versão JSON
+ * Apenas para administradores
  */
 
 class LicenseManager {
-    private $license_dir = '/var/tmp';
-    private $license_file = null;
+    private $licenseFile;
+    private $licenseData;
     
     public function __construct() {
-        $this->license_file = $this->license_dir . '/license_caixas.json';
-        if (!is_dir($this->license_dir)) {
-            mkdir($this->license_dir, 0777, true);
+        // Arquivo de licença em /var/tmp
+        $this->licenseFile = '/var/tmp/license_caixas.json';
+        $this->loadLicense();
+    }
+    
+    /**
+     * Carrega dados da licença do arquivo JSON
+     */
+    private function loadLicense() {
+        if (file_exists($this->licenseFile)) {
+            $content = file_get_contents($this->licenseFile);
+            $this->licenseData = json_decode($content, true);
+        } else {
+            $this->licenseData = null;
         }
     }
     
     /**
-     * Salvar licença
+     * Obtém status da licença
      */
-    public function saveLicense($code, $cliente = 'Local', $email = 'admin@local') {
-        $license_data = [
-            'chave' => $code,
-            'cliente' => $cliente,
-            'email' => $email,
-            'data_criacao' => date('Y-m-d H:i:s'),
-            'expiracao' => date('Y-m-d', strtotime('+1 year')),
-            'status' => 'ativa'
-        ];
-        
-        file_put_contents($this->license_file, json_encode($license_data, JSON_PRETTY_PRINT));
-        chmod($this->license_file, 0666);
-        
-        return $license_data;
-    }
-    
-    /**
-     * Verificar licença
-     */
-    public function getLicense() {
-        if (!file_exists($this->license_file)) {
-            return null;
-        }
-        
-        $content = file_get_contents($this->license_file);
-        $data = json_decode($content, true);
-        
-        // Verificar expiração
-        if (isset($data['expiracao'])) {
-            $exp_time = strtotime($data['expiracao']);
-            if (time() > $exp_time) {
-                return null; // Expirada
-            }
-        }
-        
-        return $data;
-    }
-    
-    /**
-     * Validar código de licença
-     */
-    public function validateLicense($code) {
-        // Aceita qualquer código no formato XXXX-XXXX-XXXX-XXXX
-        if (preg_match('/^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$/i', $code)) {
-            return $this->saveLicense($code);
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Obter status
-     */
-    public function getStatus() {
-        $license = $this->getLicense();
-        
-        if (!$license) {
+    public function getLicenseStatus() {
+        if (!$this->licenseData) {
             return [
                 'instalada' => false,
-                'expirada' => false,
-                'cliente' => 'N/A'
+                'expirada' => true,
+                'mensagem' => 'Nenhuma licença instalada'
             ];
         }
         
-        $exp_time = strtotime($license['expiracao']);
-        $expirada = time() > $exp_time;
+        $expiracao = strtotime($this->licenseData['expiracao'] ?? date('Y-m-d'));
+        $hoje = strtotime(date('Y-m-d'));
+        $expirada = $expiracao < $hoje;
+        
+        $dias_restantes = ceil(($expiracao - $hoje) / 86400);
         
         return [
             'instalada' => true,
             'expirada' => $expirada,
-            'cliente' => $license['cliente'] ?? 'Local',
-            'expiracao' => $license['expiracao'],
-            'chave' => $license['chave']
+            'cliente' => $this->licenseData['cliente'] ?? 'N/A',
+            'chave' => $this->licenseData['chave'] ?? 'N/A',
+            'expiracao' => $this->licenseData['expiracao'] ?? 'N/A',
+            'dias_restantes' => max(0, $dias_restantes),
+            'proxima_expiracao' => $dias_restantes < 30 && !$expirada,
+            'mensagem' => $expirada ? 'Licença expirada' : 'Licença válida'
         ];
     }
+    
+    /**
+     * Salva licença no arquivo JSON
+     */
+    public function saveLicense($chave, $cliente, $expiracao) {
+        $licenseData = [
+            'chave' => $chave,
+            'cliente' => $cliente,
+            'expiracao' => $expiracao,
+            'criacao' => date('Y-m-d H:i:s'),
+            'instalada_em' => date('Y-m-d H:i:s'),
+            'servidor' => gethostname()
+        ];
+        
+        if (file_put_contents($this->licenseFile, json_encode($licenseData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+            chmod($this->licenseFile, 0644);
+            return ['sucesso' => true, 'mensagem' => 'Licença salva com sucesso'];
+        } else {
+            return ['erro' => true, 'mensagem' => 'Erro ao salvar licença no arquivo JSON'];
+        }
+    }
+    
+    /**
+     * Remove licença
+     */
+    public function removeLicense() {
+        if (file_exists($this->licenseFile)) {
+            unlink($this->licenseFile);
+            return ['sucesso' => true, 'mensagem' => 'Licença removida'];
+        }
+        return ['erro' => true, 'mensagem' => 'Nenhuma licença para remover'];
+    }
+    
+    /**
+     * Obtém caminho do arquivo de licença
+     */
+    public function getLicenseFile() {
+        return $this->licenseFile;
+    }
+    
+    /**
+     * Verifica se há uma licença válida
+     */
+    public function isValid() {
+        $status = $this->getLicenseStatus();
+        return $status['instalada'] && !$status['expirada'];
+    }
 }
+?>
