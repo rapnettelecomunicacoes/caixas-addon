@@ -1,9 +1,13 @@
 <?php
 /**
- * FORMULÁRIO DE INSTALAÇÃO DE LICENÇA
- * Aceita código de licença e valida contra banco de dados
- * ⚠️ AGORA COM SUPORTE A BANCO DE DADOS
+ * INSTALAÇÃO DE LICENÇA - SIMPLIFICADO
+ * Sem dependência de banco de dados
  */
+
+session_name('mka');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 require_once dirname(__FILE__) . '/LicenseManager.php';
 
@@ -18,37 +22,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['license_code'])) {
     if (empty($license_code)) {
         $errors[] = 'Código de licença não pode estar vazio';
     } else {
-        // Inicializar gerenciador
+        // Validar formato
         $manager = new LicenseManager();
+        $result = $manager->validateLicense($license_code);
         
-        // Procurar licença no banco
-        $license_db = new LicenseDB();
-        $license_data = $license_db->getLicenseByKey($license_code);
-        
-        if (!$license_data) {
-            $errors[] = 'Código de licença não encontrado. Por favor, verifique e tente novamente.';
+        if ($result) {
+            $success = true;
+            $message = 'Licença instalada com sucesso! Redirecionando...';
+            header('Refresh: 2; url=/admin/addons/caixas/');
         } else {
-            // Validar expiração
-            if ($license_data['expiracao']) {
-                $expiracao_time = strtotime($license_data['expiracao']);
-                if (time() > $expiracao_time) {
-                    $errors[] = 'Licença expirada em ' . $license_data['expiracao'];
-                } else {
-                    $success = true;
-                    $message = 'Licença instalada com sucesso! Redirecionando...';
-                }
-            } else {
-                $success = true;
-                $message = 'Licença vitalícia instalada com sucesso! Redirecionando...';
-            }
+            $errors[] = 'Formato de licença inválido. Use: XXXX-XXXX-XXXX-XXXX (hexadecimal)';
         }
     }
-}
-
-// Se sucesso, redireciona
-if ($success) {
-    header('Location: /admin/addons/caixas/', true, 302);
-    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -56,7 +41,7 @@ if ($success) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instalação de Licença - GERENCIADOR FTTH v2.0</title>
+    <title>Instalação de Licença - GERENCIADOR FTTH</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -100,36 +85,64 @@ if ($success) {
             margin-bottom: 20px;
         }
         
-        .form-group label {
+        label {
             display: block;
             margin-bottom: 8px;
             color: #333;
             font-weight: 500;
-            font-size: 14px;
         }
         
-        .form-group input[type="text"] {
+        input[type="text"] {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
             border-radius: 6px;
-            font-size: 14px;
-            font-family: 'Monaco', 'Courier New', monospace;
-            transition: border-color 0.3s;
+            font-size: 16px;
             box-sizing: border-box;
+            transition: border-color 0.3s;
         }
         
-        .form-group input[type="text"]:focus {
+        input[type="text"]:focus {
             outline: none;
             border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
-        .form-group input[type="text"]::placeholder {
-            color: #999;
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 10px;
         }
         
-        .form-group button {
+        .checkbox-group input[type="checkbox"] {
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: 400;
+        }
+        
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c33;
+        }
+        
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3c3;
+        }
+        
+        button {
             width: 100%;
             padding: 12px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -139,72 +152,40 @@ if ($success) {
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: opacity 0.3s;
         }
         
-        .form-group button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-        
-        .form-group button:active {
-            transform: translateY(0);
-        }
-        
-        .alert {
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        
-        .alert-error {
-            background-color: #fee;
-            color: #c33;
-            border: 1px solid #fcc;
-        }
-        
-        .alert-success {
-            background-color: #efe;
-            color: #3c3;
-            border: 1px solid #cfc;
-        }
-        
-        .alert ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-        
-        .alert li {
-            margin: 5px 0;
+        button:hover {
+            opacity: 0.9;
         }
         
         .help-text {
-            color: #666;
-            font-size: 12px;
-            margin-top: 8px;
-            line-height: 1.6;
+            color: #999;
+            font-size: 13px;
+            margin-top: 5px;
         }
         
-        .logo {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 24px;
+        .format-hint {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #666;
+            margin-top: 15px;
         }
     </style>
 </head>
 <body>
     <div class="license-container">
         <div class="license-header">
-            <div class="logo">📜</div>
-            <h1>Instalação de Licença</h1>
+            <h1>📜 Instalação de Licença</h1>
             <p>GERENCIADOR FTTH v2.0</p>
         </div>
         
         <?php if (!empty($errors)): ?>
-            <div class="alert alert-error">
+            <div class="error-message">
                 <strong>Erro ao validar licença:</strong>
-                <ul>
+                <ul style="margin: 10px 0 0 0; padding-left: 20px;">
                     <?php foreach ($errors as $error): ?>
                         <li><?php echo htmlspecialchars($error); ?></li>
                     <?php endforeach; ?>
@@ -213,38 +194,36 @@ if ($success) {
         <?php endif; ?>
         
         <?php if ($success): ?>
-            <div class="alert alert-success">
-                <strong>Sucesso!</strong> <?php echo htmlspecialchars($message); ?>
+            <div class="success-message">
+                <strong>✅ Sucesso!</strong><br>
+                <?php echo htmlspecialchars($message); ?>
             </div>
-        <?php endif; ?>
-        
-        <form method="POST" action="">
-            <div class="form-group">
-                <label for="license_code">Código de Licença:</label>
-                <input 
-                    type="text" 
-                    id="license_code" 
-                    name="license_code" 
-                    placeholder="XXXX-XXXX-XXXX-XXXX"
-                    maxlength="19"
-                    pattern="[A-F0-9\-]{19}"
-                    autocomplete="off"
-                    required
-                >
-                <div class="help-text">
-                    ℹ️ Digite o código de licença fornecido.<br>
-                    Formato: XXXX-XXXX-XXXX-XXXX (maiúsculas)
+        <?php else: ?>
+            <form method="POST" action="">
+                <div class="form-group">
+                    <label for="license_code">Código de Licença:</label>
+                    <input 
+                        type="text" 
+                        id="license_code" 
+                        name="license_code" 
+                        placeholder="XXXX-XXXX-XXXX-XXXX"
+                        required
+                    >
+                    <div class="help-text">
+                        Digite o código de licença fornecido
+                    </div>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <button type="submit">Validar Licença</button>
-            </div>
-        </form>
-        
-        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 12px;">
-            <p>Não possui uma licença?<br>Entre em contato com o suporte.</p>
-        </div>
+                
+                <div class="format-hint">
+                    <strong>Formato aceito:</strong> XXXX-XXXX-XXXX-XXXX<br>
+                    Onde X é um caractere hexadecimal (0-9, A-F)
+                </div>
+                
+                <button type="submit" style="margin-top: 20px;">
+                    Validar Licença
+                </button>
+            </form>
+        <?php endif; ?>
     </div>
 </body>
 </html>
