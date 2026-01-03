@@ -19,6 +19,8 @@ ADDON_PATH="/opt/mk-auth/admin/addons/$ADDON_NAME"
 ADDON_OWNER="www-data"
 ADDON_GROUP="www-data"
 ADDON_VERSION="2.0"
+TEMP_DIR="/tmp/caixas-install-$$"
+REPO_URL="https://github.com/rapnettelecomunicacoes/caixas-addon.git"
 
 # ============================================================================
 # FUNÇÕES
@@ -48,6 +50,14 @@ print_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
 }
 
+cleanup() {
+    if [ -d "$TEMP_DIR" ]; then
+        rm -rf "$TEMP_DIR"
+    fi
+}
+
+trap cleanup EXIT
+
 # ============================================================================
 # VERIFICAÇÃO DE REQUISITOS
 # ============================================================================
@@ -67,43 +77,42 @@ check_requirements() {
         exit 1
     fi
     
+    # Verificar se git está instalado
+    if ! command -v git &> /dev/null; then
+        print_error "Git não está instalado. Por favor, instale git"
+        exit 1
+    fi
+    
     print_success "Requisitos validados"
+}
+
+# ============================================================================
+# DOWNLOAD DOS ARQUIVOS
+# ============================================================================
+
+download_addon() {
+    print_info "Baixando repositório do GitHub..."
+    
+    mkdir -p "$TEMP_DIR"
+    
+    # Clonar repositório
+    if ! git clone "$REPO_URL" "$TEMP_DIR" 2>&1 | grep -E "fatal|error"; then
+        print_success "Repositório baixado com sucesso"
+    else
+        print_error "Erro ao clonar repositório"
+        exit 1
+    fi
+    
+    # Verificar se os arquivos principais existem
+    if [ ! -f "$TEMP_DIR/index.php" ] || [ ! -d "$TEMP_DIR/src" ]; then
+        print_error "Arquivos principais não encontrados no repositório"
+        exit 1
+    fi
 }
 
 # ============================================================================
 # INSTALAÇÃO
 # ============================================================================
-
-copy_addon_files() {
-    print_info "Copiando arquivos do addon..."
-    
-    # Obter diretório do script (onde foi executado)
-    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    
-    # Verificar se estamos no diretório correto (contém src, index.php, etc)
-    if [ ! -f "$SCRIPT_DIR/index.php" ] && [ ! -d "$SCRIPT_DIR/src" ]; then
-        print_error "Arquivo 'index.php' ou diretório 'src' não encontrado"
-        print_info "Certifique-se de executar este script no raiz do repositório"
-        exit 1
-    fi
-    
-    # Criar diretório pai se não existir
-    mkdir -p "$(dirname "$ADDON_PATH")"
-    
-    # Criar diretório do addon se não existir
-    mkdir -p "$ADDON_PATH"
-    
-    # Copiar TODOS os arquivos do script_dir para ADDON_PATH
-    cp -r "$SCRIPT_DIR"/* "$ADDON_PATH/" 2>/dev/null || true
-    cp -r "$SCRIPT_DIR"/.[^.]* "$ADDON_PATH/" 2>/dev/null || true
-    
-    if [ -f "$ADDON_PATH/index.php" ]; then
-        print_success "Arquivos copiados com sucesso"
-    else
-        print_error "Erro ao copiar arquivos"
-        exit 1
-    fi
-}
 
 backup_addon() {
     print_info "Verificando instalação anterior..."
@@ -113,6 +122,27 @@ backup_addon() {
         print_warning "Addon já existe. Criando backup em $BACKUP_PATH"
         mv "$ADDON_PATH" "$BACKUP_PATH"
         print_success "Backup criado"
+    fi
+}
+
+copy_addon_files() {
+    print_info "Copiando arquivos do addon..."
+    
+    # Criar diretório do addon
+    mkdir -p "$ADDON_PATH"
+    
+    # Copiar TODOS os arquivos do repositório
+    cp -r "$TEMP_DIR"/* "$ADDON_PATH/" 2>/dev/null || true
+    cp -r "$TEMP_DIR"/.[^.]* "$ADDON_PATH/" 2>/dev/null || true
+    
+    # Remover arquivo .git se existir
+    rm -rf "$ADDON_PATH/.git" 2>/dev/null || true
+    
+    if [ -f "$ADDON_PATH/index.php" ]; then
+        print_success "Arquivos copiados com sucesso"
+    else
+        print_error "Erro ao copiar arquivos"
+        exit 1
     fi
 }
 
@@ -128,7 +158,6 @@ set_permissions() {
     
     # Deixar scripts executáveis
     find "$ADDON_PATH" -name "*.sh" -exec chmod 755 {} \;
-    find "$ADDON_PATH" -name "install*.sh" -exec chmod 755 {} \;
     
     print_success "Permissões configuradas"
 }
@@ -139,8 +168,8 @@ create_license_dir() {
     LICENSE_DIR="/var/tmp"
     mkdir -p "$LICENSE_DIR"
     
-    # Se não existir licença de teste, criar uma
-    if [ ! -f "$LICENSE_DIR/license_"*.json ]; then
+    # Se não existir licença, criar uma de teste
+    if ! ls "$LICENSE_DIR"/license_*.json 1> /dev/null 2>&1; then
         print_info "Gerando licença de teste..."
         php -r "
         \$licenseData = [
@@ -193,6 +222,7 @@ main() {
     print_header
     
     check_requirements
+    download_addon
     backup_addon
     copy_addon_files
     set_permissions
@@ -208,6 +238,7 @@ main() {
         print_success "Addon instalado em: $ADDON_PATH"
         print_info "Acesse: https://seu-servidor/admin/addons/caixas/"
         echo ""
+        return 0
     else
         echo ""
         print_error "Houve problemas na instalação"
