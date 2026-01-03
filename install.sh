@@ -309,23 +309,24 @@ check_license() {
     
     LICENSE_FILE="/var/tmp/license_caixas.json"
     
-    # Se não existe arquivo de licença, criar um padrão
+    # Se não existe arquivo de licença, criar um vazio (desativado)
     if [ ! -f "$LICENSE_FILE" ]; then
-        print_warning "Arquivo de licença não encontrado. Criando licença padrão..."
+        print_warning "Arquivo de licença não encontrado. Criando arquivo vazio..."
         
         cat > "$LICENSE_FILE" << 'EOJSON'
 {
-    "chave": "F6A4-A7DA-64B6-D3C4",
-    "cliente": "RAPNET Telecomunicações",
-    "expiracao": "2027-01-03",
-    "criacao": "2026-01-02 01:36:15",
-    "instalada_em": "2026-01-02 01:36:22",
-    "servidor": "mk-auth"
+    "instalada": false,
+    "chave": "",
+    "cliente": "",
+    "expiracao": "",
+    "criacao": "",
+    "instalada_em": "",
+    "servidor": ""
 }
 EOJSON
         
         chmod 644 "$LICENSE_FILE"
-        print_success "Arquivo de licença criado: $LICENSE_FILE"
+        print_success "Arquivo de licença criado (aguardando ativação): $LICENSE_FILE"
     else
         print_success "Arquivo de licença encontrado: $LICENSE_FILE"
     fi

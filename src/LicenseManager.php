@@ -39,6 +39,24 @@ class LicenseManager {
             ];
         }
         
+        // Se não está marcada como instalada, retornar não instalada
+        if (isset($this->licenseData['instalada']) && !$this->licenseData['instalada']) {
+            return [
+                'instalada' => false,
+                'expirada' => true,
+                'mensagem' => 'Licença aguardando ativação'
+            ];
+        }
+        
+        // Se não tem chave, não está instalada
+        if (empty($this->licenseData['chave'])) {
+            return [
+                'instalada' => false,
+                'expirada' => true,
+                'mensagem' => 'Licença não ativada'
+            ];
+        }
+        
         $expiracao = strtotime($this->licenseData['expiracao'] ?? date('Y-m-d'));
         $hoje = strtotime(date('Y-m-d'));
         $expirada = $expiracao < $hoje;
@@ -62,6 +80,7 @@ class LicenseManager {
      */
     public function saveLicense($chave, $cliente, $expiracao) {
         $licenseData = [
+            'instalada' => true,
             'chave' => $chave,
             'cliente' => $cliente,
             'expiracao' => $expiracao,
@@ -72,10 +91,27 @@ class LicenseManager {
         
         if (file_put_contents($this->licenseFile, json_encode($licenseData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
             chmod($this->licenseFile, 0644);
-            return ['sucesso' => true, 'mensagem' => 'Licença salva com sucesso'];
+            $this->licenseData = $licenseData;
+            return ['sucesso' => true, 'mensagem' => 'Licença ativada com sucesso'];
         } else {
             return ['erro' => true, 'mensagem' => 'Erro ao salvar licença no arquivo JSON'];
         }
+    }
+    
+    /**
+     * Ativa uma licença com validação
+     */
+    public function activateLicense($chave, $cliente, $dias = 365) {
+        // Validar chave (formato básico: XXXX-XXXX-XXXX-XXXX)
+        if (!preg_match('/^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$/', $chave)) {
+            return ['erro' => true, 'mensagem' => 'Formato de chave inválido'];
+        }
+        
+        // Calcular data de expiração
+        $expiracao = date('Y-m-d', strtotime("+$dias days"));
+        
+        // Salvar licença
+        return $this->saveLicense($chave, $cliente, $expiracao);
     }
     
     /**

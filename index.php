@@ -5,6 +5,17 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', dirname(__FILE__) . '/error.log');
 
+// === VERIFICAÇÃO DE LICENÇA ===
+require_once dirname(__FILE__) . '/src/LicenseManager.php';
+$licenseManager = new LicenseManager();
+$licenseStatus = $licenseManager->getLicenseStatus();
+
+// Se licença não está ativa, redirecionar para página de ativação
+if (!$licenseStatus['instalada'] || $licenseStatus['expirada']) {
+    header('Location: src/license_install.php');
+    exit;
+}
+
 // === VERIFICAÇÃO DE AUTENTICAÇÃO FLEXÍVEL ===
 // Usa gestor que detecta qualquer variável de sessão do mk-auth
 require_once dirname(__FILE__) . '/src/auth_handler.php';
