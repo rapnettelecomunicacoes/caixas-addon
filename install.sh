@@ -3,7 +3,7 @@
 # ============================================================================
 # INSTALADOR AUTOMÁTICO - GERENCIADOR FTTH v2.0
 # Autor: Patrick Nascimento
-# Data: 1º de Janeiro de 2026
+# Data: 2 de Janeiro de 2026 - VERSÃO 3.0 (Sem Git)
 # ============================================================================
 
 # Cores para output
@@ -20,7 +20,6 @@ ADDON_OWNER="www-data"
 ADDON_GROUP="www-data"
 ADDON_VERSION="2.0"
 TEMP_DIR="/tmp/caixas-install-$$"
-REPO_URL="https://github.com/rapnettelecomunicacoes/caixas-addon"
 ZIP_URL="https://github.com/rapnettelecomunicacoes/caixas-addon/archive/refs/heads/main.zip"
 
 # ============================================================================
@@ -78,9 +77,15 @@ check_requirements() {
         exit 1
     fi
     
-    # Verificar se curl ou wget estão disponíveis
-    if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
-        print_error "curl ou wget não estão instalados"
+    # Verificar se curl está disponível
+    if ! command -v curl &> /dev/null; then
+        print_error "curl não está instalado"
+        exit 1
+    fi
+    
+    # Verificar se unzip está disponível
+    if ! command -v unzip &> /dev/null; then
+        print_error "unzip não está instalado"
         exit 1
     fi
     
@@ -92,69 +97,44 @@ check_requirements() {
 # ============================================================================
 
 download_addon() {
-    print_info "Baixando repositório..."
+    print_info "Baixando repositório do GitHub..."
     
     mkdir -p "$TEMP_DIR"
     
-    # Tentar git clone primeiro (mais rápido se git existir)
-    if command -v git &> /dev/null; then
-        print_info "Usando git clone..."
-        if git clone "$REPO_URL.git" "$TEMP_DIR" 2>&1 | grep -E "fatal|error" > /dev/null; then
-            print_warning "Git clone falhou, tentando download via HTTP..."
-            download_via_http
-        else
-            print_success "Repositório clonado com sucesso"
-        fi
-    else
-        print_info "Git não disponível, usando download HTTP..."
-        download_via_http
-    fi
+    # Baixar ZIP com cache busting
+    TIMESTAMP=$(date +%s)
+    DOWNLOAD_URL="${ZIP_URL}?t=${TIMESTAMP}"
     
-    # Verificar se os arquivos principais existem
-    if [ ! -f "$TEMP_DIR/index.php" ] && [ ! -f "$TEMP_DIR/caixas-addon-main/index.php" ]; then
-        print_error "Arquivos principais não encontrados"
-        exit 1
-    fi
-    
-    # Se foi baixado em ZIP (caixas-addon-main), mover para TEMP_DIR
-    if [ -d "$TEMP_DIR/caixas-addon-main" ]; then
-        mv "$TEMP_DIR/caixas-addon-main"/* "$TEMP_DIR/"
-        rm -rf "$TEMP_DIR/caixas-addon-main"
-    fi
-}
-
-download_via_http() {
-    local DOWNLOADED=0
-    
-    # Tentar com curl
-    if command -v curl &> /dev/null; then
-        print_info "Baixando ZIP via curl..."
-        if curl -sSL -o "$TEMP_DIR/addon.zip" "$ZIP_URL" 2>/dev/null; then
-            DOWNLOADED=1
-        fi
-    fi
-    
-    # Se curl falhou, tentar wget
-    if [ $DOWNLOADED -eq 0 ] && command -v wget &> /dev/null; then
-        print_info "Baixando ZIP via wget..."
-        if wget -q -O "$TEMP_DIR/addon.zip" "$ZIP_URL" 2>/dev/null; then
-            DOWNLOADED=1
-        fi
-    fi
-    
-    if [ $DOWNLOADED -eq 0 ]; then
+    if ! curl -sSL -o "$TEMP_DIR/addon.zip" "$DOWNLOAD_URL" 2>/dev/null; then
         print_error "Falha ao baixar repositório"
         exit 1
     fi
     
+    print_success "Repositório baixado"
+    
     # Descompactar ZIP
     print_info "Descompactando arquivos..."
-    if command -v unzip &> /dev/null; then
-        unzip -q "$TEMP_DIR/addon.zip" -d "$TEMP_DIR"
-        rm "$TEMP_DIR/addon.zip"
-        print_success "Repositório baixado e descompactado"
-    else
-        print_error "unzip não está instalado"
+    if ! unzip -q "$TEMP_DIR/addon.zip" -d "$TEMP_DIR" 2>/dev/null; then
+        print_error "Erro ao descompactar"
+        exit 1
+    fi
+    
+    print_success "Arquivos descompactados"
+    
+    # Se foi baixado em ZIP (caixas-addon-main), mover para TEMP_DIR
+    if [ -d "$TEMP_DIR/caixas-addon-main" ]; then
+        mv "$TEMP_DIR/caixas-addon-main"/* "$TEMP_DIR/" 2>/dev/null
+        rmdir "$TEMP_DIR/caixas-addon-main" 2>/dev/null
+    fi
+    
+    # Verificar se os arquivos principais existem
+    if [ ! -f "$TEMP_DIR/index.php" ]; then
+        print_error "Arquivo index.php não encontrado no repositório"
+        exit 1
+    fi
+    
+    if [ ! -d "$TEMP_DIR/src" ]; then
+        print_error "Diretório src não encontrado no repositório"
         exit 1
     fi
 }
@@ -181,7 +161,7 @@ copy_addon_files() {
     mkdir -p "$ADDON_PATH"
     
     # Copiar TODOS os arquivos do repositório
-    cp -r "$TEMP_DIR"/* "$ADDON_PATH/" 2>/dev/null || true
+    cp -r "$TEMP_DIR"/* "$ADDON_PATH/" 2>/dev/null
     cp -r "$TEMP_DIR"/.[^.]* "$ADDON_PATH/" 2>/dev/null || true
     
     # Remover arquivo .git se existir
