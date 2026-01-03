@@ -144,8 +144,24 @@ class LicenseManager {
             'servidor' => gethostname()
         ];
         
+        // Carregar arquivo existente para manter histórico
+        $historico = [];
+        if (file_exists($this->licenseFile)) {
+            $conteudo = file_get_contents($this->licenseFile);
+            $dadosExistentes = json_decode($conteudo, true);
+            if (isset($dadosExistentes['historico'])) {
+                $historico = $dadosExistentes['historico'];
+            }
+        }
+        
+        // Adicionar nova licença ao histórico
+        $historico[] = $licenseData;
+        
+        // Dados completos com histórico
+        $dadosCompletos = array_merge($licenseData, ['historico' => $historico]);
+        
         // Salvar no arquivo
-        if (file_put_contents($this->licenseFile, json_encode($licenseData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+        if (file_put_contents($this->licenseFile, json_encode($dadosCompletos, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
             chmod($this->licenseFile, 0666);
             @chown($this->licenseFile, 'www-data');
             @chgrp($this->licenseFile, 'www-data');
@@ -205,6 +221,24 @@ class LicenseManager {
     public function isValid() {
         $status = $this->getLicenseStatus();
         return $status['instalada'] && !$status['expirada'];
+    }
+    
+    /**
+     * Retorna array com todas as licenças geradas (histórico)
+     */
+    public function getAllLicenses() {
+        if (!file_exists($this->licenseFile)) {
+            return [];
+        }
+        
+        $conteudo = file_get_contents($this->licenseFile);
+        $dados = json_decode($conteudo, true);
+        
+        if (!isset($dados['historico'])) {
+            return [];
+        }
+        
+        return $dados['historico'];
     }
 }
 ?>
