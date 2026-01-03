@@ -3,7 +3,7 @@
 # ============================================================================
 # INSTALADOR AUTOMÁTICO - GERENCIADOR FTTH v2.0
 # Autor: Patrick Nascimento
-# Data: 2 de Janeiro de 2026 - VERSÃO 3.4 (Criar api.conf se não existir)
+# Data: 2 de Janeiro de 2026 - VERSÃO 3.5 (Com debug)
 # ============================================================================
 
 # Cores para output
@@ -21,6 +21,7 @@ ADDON_GROUP="www-data"
 ADDON_VERSION="2.0"
 TEMP_DIR="/tmp/caixas-install-$$"
 ZIP_URL="https://github.com/rapnettelecomunicacoes/caixas-addon/archive/refs/heads/main.zip"
+DEBUG_LOG="/tmp/caixas-install-debug.log"
 
 # ============================================================================
 # FUNÇÕES
@@ -36,18 +37,22 @@ print_header() {
 
 print_success() {
     echo -e "${GREEN}✅ $1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUCCESS: $1" >> "$DEBUG_LOG"
 }
 
 print_error() {
     echo -e "${RED}❌ $1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1" >> "$DEBUG_LOG"
 }
 
 print_warning() {
     echo -e "${YELLOW}⚠️  $1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] WARNING: $1" >> "$DEBUG_LOG"
 }
 
 print_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] INFO: $1" >> "$DEBUG_LOG"
 }
 
 cleanup() {
@@ -87,7 +92,7 @@ detect_php_socket() {
         fi
     done
     
-    # Se nenhum socket foi encontrado, usar o padrão (será criado pelo PHP-FPM depois)
+    # Se nenhum socket foi encontrado, usar o padrão
     print_warning "Nenhum socket PHP-FPM encontrado. Usando socket padrão: /run/php-api.sock"
     echo "/run/php-api.sock"
     return 0
@@ -97,8 +102,10 @@ create_apache_conf() {
     local PHP_SOCKET=$1
     local API_CONF="/etc/apache2/conf-available/api.conf"
     
-    print_info "Criando configuração Apache com socket: $PHP_SOCKET"
+    print_info "Criando novo arquivo api.conf com socket: $PHP_SOCKET"
+    echo "[DEBUG] PHP_SOCKET = $PHP_SOCKET" >> "$DEBUG_LOG"
     
+    # Criar arquivo
     cat > "$API_CONF" << EOFCONF
 # SISTEMA MK-AUTH64 DEFAULT APACHE
 
@@ -116,38 +123,25 @@ Alias /api /opt/mk-auth/api
 # vim: syntax=apache ts=4 sw=4 sts=4 sr noet
 EOFCONF
     
+    # Verificar criação
     if [ -f "$API_CONF" ]; then
-        print_success "api.conf criado com sucesso"
-        return 0
-    else
-        print_error "Erro ao criar api.conf"
-        return 1
-    fi
-}
-
-update_apache_socket() {
-    local PHP_SOCKET=$1
-    local API_CONF="/etc/apache2/conf-available/api.conf"
-    
-    print_info "Atualizando socket em api.conf para: $PHP_SOCKET"
-    
-    # Atualizar socket no arquivo existente
-    if grep -q "SetHandler.*proxy:unix:" "$API_CONF"; then
-        # Criar arquivo temporário com o socket correto
-        sed "s|proxy:unix:[^|]*|proxy:unix:${PHP_SOCKET}|g" "$API_CONF" > "${API_CONF}.tmp"
+        local FILE_SIZE=$(stat -f%z "$API_CONF" 2>/dev/null || stat -c%s "$API_CONF" 2>/dev/null)
+        echo "[DEBUG] Arquivo criado, tamanho: $FILE_SIZE bytes" >> "$DEBUG_LOG"
         
-        if [ -f "${API_CONF}.tmp" ]; then
-            mv "${API_CONF}.tmp" "$API_CONF"
-            print_success "Socket atualizado no api.conf"
+        # Validar conteúdo
+        if grep -q "SetHandler" "$API_CONF"; then
+            print_success "api.conf criado com sucesso ($(stat -c%s "$API_CONF" 2>/dev/null || stat -f%z "$API_CONF" 2>/dev/null) bytes)"
             return 0
         else
-            print_error "Erro ao atualizar socket no api.conf"
+            print_error "Arquivo criado mas sem conteúdo esperado"
+            echo "[DEBUG] Conteúdo do arquivo:" >> "$DEBUG_LOG"
+            cat "$API_CONF" >> "$DEBUG_LOG"
             return 1
         fi
     else
-        print_warning "Padrão SetHandler não encontrado, recriando arquivo..."
-        create_apache_conf "$PHP_SOCKET"
-        return $?
+        print_error "Falha ao criar api.conf"
+        echo "[DEBUG] Arquivo não foi criado em $API_CONF" >> "$DEBUG_LOG"
+        return 1
     fi
 }
 
@@ -156,33 +150,62 @@ configure_apache_socket() {
     local API_CONF="/etc/apache2/conf-available/api.conf"
     
     print_info "Configurando Apache com socket: $PHP_SOCKET"
+    echo "[DEBUG] Iniciando configuração Apache" >> "$DEBUG_LOG"
+    echo "[DEBUG] API_CONF = $API_CONF" >> "$DEBUG_LOG"
+    echo "[DEBUG] PHP_SOCKET = $PHP_SOCKET" >> "$DEBUG_LOG"
     
-    # Se o arquivo não existir ou estiver vazio, criar
-    if [ ! -f "$API_CONF" ] || [ ! -s "$API_CONF" ]; then
+    # Verificar estado do arquivo
+    if [ ! -f "$API_CONF" ]; then
+        echo "[DEBUG] Arquivo não existe, será criado" >> "$DEBUG_LOG"
         create_apache_conf "$PHP_SOCKET"
-        if [ $? -ne 0 ]; then
+        return $?
+    fi
+    
+    # Se arquivo existe, verificar se tem conteúdo
+    if [ ! -s "$API_CONF" ]; then
+        echo "[DEBUG] Arquivo existe mas está vazio, será recriado" >> "$DEBUG_LOG"
+        create_apache_conf "$PHP_SOCKET"
+        return $?
+    fi
+    
+    # Arquivo existe e tem conteúdo, verificar padrão
+    if grep -q "SetHandler.*proxy:unix:" "$API_CONF"; then
+        echo "[DEBUG] Padrão encontrado, atualizando" >> "$DEBUG_LOG"
+        sed "s|proxy:unix:[^|]*|proxy:unix:${PHP_SOCKET}|g" "$API_CONF" > "${API_CONF}.tmp"
+        
+        if [ -f "${API_CONF}.tmp" ]; then
+            mv "${API_CONF}.tmp" "$API_CONF"
+            print_success "Socket atualizado no api.conf"
+        else
+            print_error "Erro ao atualizar socket no api.conf"
             return 1
         fi
     else
-        # Arquivo existe e tem conteúdo, atualizar
-        update_apache_socket "$PHP_SOCKET"
-        if [ $? -ne 0 ]; then
-            return 1
-        fi
+        echo "[DEBUG] Padrão NÃO encontrado, recriando arquivo" >> "$DEBUG_LOG"
+        echo "[DEBUG] Conteúdo atual:" >> "$DEBUG_LOG"
+        cat "$API_CONF" >> "$DEBUG_LOG"
+        create_apache_conf "$PHP_SOCKET"
+        return $?
     fi
     
-    # Recarregar Apache se estiver rodando
+    # Recarregar Apache
+    echo "[DEBUG] Testando configuração Apache com apache2ctl" >> "$DEBUG_LOG"
     if command -v apache2ctl &> /dev/null; then
-        if apache2ctl configtest 2>/dev/null | grep -q "Syntax OK"; then
+        local APACHE_TEST=$(apache2ctl configtest 2>&1)
+        echo "[DEBUG] apache2ctl output: $APACHE_TEST" >> "$DEBUG_LOG"
+        
+        if echo "$APACHE_TEST" | grep -q "Syntax OK"; then
             apache2ctl graceful 2>/dev/null || true
             print_success "Apache recarregado com sucesso"
             return 0
         else
-            print_warning "Erro na configuração do Apache (verifique com: apache2ctl configtest)"
-            return 0
+            print_warning "Erro na configuração do Apache"
+            echo "[DEBUG] Erro detectado: $APACHE_TEST" >> "$DEBUG_LOG"
+            return 0  # Continuar mesmo com erro
         fi
     else
         print_info "Apache não encontrado (não recarregado)"
+        echo "[DEBUG] apache2ctl não encontrado" >> "$DEBUG_LOG"
         return 0
     fi
 }
@@ -426,6 +449,10 @@ verify_installation() {
 # ============================================================================
 
 main() {
+    # Inicializar debug log
+    > "$DEBUG_LOG"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] === INSTALAÇÃO INICIADA ===" >> "$DEBUG_LOG"
+    
     print_header
     
     check_requirements
@@ -443,6 +470,10 @@ main() {
     run_migrations
     verify_installation
     
+    echo "" 
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] === DEBUG LOG SALVO ===" >> "$DEBUG_LOG"
+    print_info "Log de debug salvo em: $DEBUG_LOG"
+    
     if [ $? -eq 0 ]; then
         echo ""
         echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
@@ -457,6 +488,7 @@ main() {
     else
         echo ""
         print_error "Houve problemas na instalação"
+        print_info "Verifique o log em: $DEBUG_LOG"
         exit 1
     fi
 }
