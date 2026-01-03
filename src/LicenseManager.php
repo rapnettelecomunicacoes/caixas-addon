@@ -155,7 +155,11 @@ class LicenseManager {
                 'mensagem' => 'Licença gerada com sucesso',
                 'chave' => $chave,
                 'cliente' => $cliente,
-                'expiracao' => $expiracao
+                'email' => $email,
+                'provedor' => $provedor,
+                'criacao' => date('Y-m-d H:i:s'),
+                'expiracao' => $expiracao,
+                'dias' => $dias
             ];
         } else {
             return ['erro' => true, 'mensagem' => 'Erro ao gerar licença'];
