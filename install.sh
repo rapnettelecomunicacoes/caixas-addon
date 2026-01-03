@@ -3,7 +3,7 @@
 # ============================================================================
 # INSTALADOR AUTOMÁTICO - GERENCIADOR FTTH v2.0
 # Autor: Patrick Nascimento
-# Data: 2 de Janeiro de 2026 - VERSÃO 3.3 (sed simplificado)
+# Data: 2 de Janeiro de 2026 - VERSÃO 3.4 (Criar api.conf se não existir)
 # ============================================================================
 
 # Cores para output
@@ -93,16 +93,13 @@ detect_php_socket() {
     return 0
 }
 
-configure_apache_socket() {
+create_apache_conf() {
     local PHP_SOCKET=$1
     local API_CONF="/etc/apache2/conf-available/api.conf"
     
-    print_info "Atualizando configuração Apache com socket: $PHP_SOCKET"
+    print_info "Criando configuração Apache com socket: $PHP_SOCKET"
     
-    # Se o arquivo api.conf não existir, criar
-    if [ ! -f "$API_CONF" ]; then
-        print_warning "api.conf não encontrado, criando arquivo..."
-        cat > "$API_CONF" << EOFCONF
+    cat > "$API_CONF" << EOFCONF
 # SISTEMA MK-AUTH64 DEFAULT APACHE
 
 Alias /api /opt/mk-auth/api
@@ -118,22 +115,59 @@ Alias /api /opt/mk-auth/api
 
 # vim: syntax=apache ts=4 sw=4 sts=4 sr noet
 EOFCONF
-        print_success "api.conf criado"
+    
+    if [ -f "$API_CONF" ]; then
+        print_success "api.conf criado com sucesso"
+        return 0
     else
-        # Atualizar socket no arquivo existente
-        # Usar uma substituição simples e direta
-        if grep -q "SetHandler.*proxy:unix:" "$API_CONF"; then
-            # Criar arquivo temporário com o socket correto
-            sed "s|proxy:unix:[^|]*|proxy:unix:${PHP_SOCKET}|g" "$API_CONF" > "${API_CONF}.tmp"
-            if [ -f "${API_CONF}.tmp" ]; then
-                mv "${API_CONF}.tmp" "$API_CONF"
-                print_success "Socket atualizado no api.conf"
-            else
-                print_error "Erro ao atualizar socket no api.conf"
-                return 1
-            fi
+        print_error "Erro ao criar api.conf"
+        return 1
+    fi
+}
+
+update_apache_socket() {
+    local PHP_SOCKET=$1
+    local API_CONF="/etc/apache2/conf-available/api.conf"
+    
+    print_info "Atualizando socket em api.conf para: $PHP_SOCKET"
+    
+    # Atualizar socket no arquivo existente
+    if grep -q "SetHandler.*proxy:unix:" "$API_CONF"; then
+        # Criar arquivo temporário com o socket correto
+        sed "s|proxy:unix:[^|]*|proxy:unix:${PHP_SOCKET}|g" "$API_CONF" > "${API_CONF}.tmp"
+        
+        if [ -f "${API_CONF}.tmp" ]; then
+            mv "${API_CONF}.tmp" "$API_CONF"
+            print_success "Socket atualizado no api.conf"
+            return 0
         else
-            print_warning "Padrão de socket não encontrado no api.conf"
+            print_error "Erro ao atualizar socket no api.conf"
+            return 1
+        fi
+    else
+        print_warning "Padrão SetHandler não encontrado, recriando arquivo..."
+        create_apache_conf "$PHP_SOCKET"
+        return $?
+    fi
+}
+
+configure_apache_socket() {
+    local PHP_SOCKET=$1
+    local API_CONF="/etc/apache2/conf-available/api.conf"
+    
+    print_info "Configurando Apache com socket: $PHP_SOCKET"
+    
+    # Se o arquivo não existir ou estiver vazio, criar
+    if [ ! -f "$API_CONF" ] || [ ! -s "$API_CONF" ]; then
+        create_apache_conf "$PHP_SOCKET"
+        if [ $? -ne 0 ]; then
+            return 1
+        fi
+    else
+        # Arquivo existe e tem conteúdo, atualizar
+        update_apache_socket "$PHP_SOCKET"
+        if [ $? -ne 0 ]; then
+            return 1
         fi
     fi
     
@@ -144,7 +178,7 @@ EOFCONF
             print_success "Apache recarregado com sucesso"
             return 0
         else
-            print_warning "Erro na configuração do Apache (verifique manualmente com: apache2ctl configtest)"
+            print_warning "Erro na configuração do Apache (verifique com: apache2ctl configtest)"
             return 0
         fi
     else
