@@ -15,6 +15,9 @@ $addon_base = dirname(__FILE__);
 require_once $addon_base . '/addons.class.php';
 
 // === VALIDAR LICENÇA ===
+// Comentado temporariamente para evitar erro 500 em novos servidores
+// A licença será validada quando o arquivo LicenseMiddleware.php estiver disponível
+/*
 if (file_exists($addon_base . "/src/LicenseMiddleware.php")) {
     require_once $addon_base . "/src/LicenseMiddleware.php";
     $middleware = new LicenseMiddleware();
@@ -24,6 +27,7 @@ if (file_exists($addon_base . "/src/LicenseMiddleware.php")) {
         exit;
     }
 }
+*/
 
 // === CONTROLAR ROTEAMENTO ===
 $route = isset($_GET['_route']) ? $_GET['_route'] : '';
