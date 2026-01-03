@@ -538,6 +538,39 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
         });
         </script>
 
+        <!-- Aviso de Licença Vencendo -->
+        <?php 
+        $dias_restantes = intval($licenseStatus['dias_restantes'] ?? 999);
+        if ($dias_restantes <= 7 && $dias_restantes > 0):
+        ?>
+        <div style="
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #78350f;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #d97706;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        ">
+            <div>
+                <strong>⚠️ Licença Vencendo!</strong><br>
+                <small>Sua licença vence em <?php echo $dias_restantes; ?> dia<?php echo $dias_restantes === 1 ? '' : 's'; ?>. Renove agora para continuar usando o addon.</small>
+            </div>
+            <a href="src/license_install.php" style="
+                background: #d97706;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 5px;
+                text-decoration: none;
+                font-weight: bold;
+                white-space: nowrap;
+                margin-left: 15px;
+            ">Renovar Licença</a>
+        </div>
+        <?php endif; ?>
+
         <!-- Stats Section -->
         <div class="stats-grid">
             <div class="stat-card">
