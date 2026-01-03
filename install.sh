@@ -20,7 +20,8 @@ ADDON_OWNER="www-data"
 ADDON_GROUP="www-data"
 ADDON_VERSION="2.0"
 TEMP_DIR="/tmp/caixas-install-$$"
-REPO_URL="https://github.com/rapnettelecomunicacoes/caixas-addon.git"
+REPO_URL="https://github.com/rapnettelecomunicacoes/caixas-addon"
+ZIP_URL="https://github.com/rapnettelecomunicacoes/caixas-addon/archive/refs/heads/main.zip"
 
 # ============================================================================
 # FUNÇÕES
@@ -77,9 +78,9 @@ check_requirements() {
         exit 1
     fi
     
-    # Verificar se git está instalado
-    if ! command -v git &> /dev/null; then
-        print_error "Git não está instalado. Por favor, instale git"
+    # Verificar se curl ou wget estão disponíveis
+    if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
+        print_error "curl ou wget não estão instalados"
         exit 1
     fi
     
@@ -91,21 +92,69 @@ check_requirements() {
 # ============================================================================
 
 download_addon() {
-    print_info "Baixando repositório do GitHub..."
+    print_info "Baixando repositório..."
     
     mkdir -p "$TEMP_DIR"
     
-    # Clonar repositório
-    if ! git clone "$REPO_URL" "$TEMP_DIR" 2>&1 | grep -E "fatal|error"; then
-        print_success "Repositório baixado com sucesso"
+    # Tentar git clone primeiro (mais rápido se git existir)
+    if command -v git &> /dev/null; then
+        print_info "Usando git clone..."
+        if git clone "$REPO_URL.git" "$TEMP_DIR" 2>&1 | grep -E "fatal|error" > /dev/null; then
+            print_warning "Git clone falhou, tentando download via HTTP..."
+            download_via_http
+        else
+            print_success "Repositório clonado com sucesso"
+        fi
     else
-        print_error "Erro ao clonar repositório"
-        exit 1
+        print_info "Git não disponível, usando download HTTP..."
+        download_via_http
     fi
     
     # Verificar se os arquivos principais existem
-    if [ ! -f "$TEMP_DIR/index.php" ] || [ ! -d "$TEMP_DIR/src" ]; then
-        print_error "Arquivos principais não encontrados no repositório"
+    if [ ! -f "$TEMP_DIR/index.php" ] && [ ! -f "$TEMP_DIR/caixas-addon-main/index.php" ]; then
+        print_error "Arquivos principais não encontrados"
+        exit 1
+    fi
+    
+    # Se foi baixado em ZIP (caixas-addon-main), mover para TEMP_DIR
+    if [ -d "$TEMP_DIR/caixas-addon-main" ]; then
+        mv "$TEMP_DIR/caixas-addon-main"/* "$TEMP_DIR/"
+        rm -rf "$TEMP_DIR/caixas-addon-main"
+    fi
+}
+
+download_via_http() {
+    local DOWNLOADED=0
+    
+    # Tentar com curl
+    if command -v curl &> /dev/null; then
+        print_info "Baixando ZIP via curl..."
+        if curl -sSL -o "$TEMP_DIR/addon.zip" "$ZIP_URL" 2>/dev/null; then
+            DOWNLOADED=1
+        fi
+    fi
+    
+    # Se curl falhou, tentar wget
+    if [ $DOWNLOADED -eq 0 ] && command -v wget &> /dev/null; then
+        print_info "Baixando ZIP via wget..."
+        if wget -q -O "$TEMP_DIR/addon.zip" "$ZIP_URL" 2>/dev/null; then
+            DOWNLOADED=1
+        fi
+    fi
+    
+    if [ $DOWNLOADED -eq 0 ]; then
+        print_error "Falha ao baixar repositório"
+        exit 1
+    fi
+    
+    # Descompactar ZIP
+    print_info "Descompactando arquivos..."
+    if command -v unzip &> /dev/null; then
+        unzip -q "$TEMP_DIR/addon.zip" -d "$TEMP_DIR"
+        rm "$TEMP_DIR/addon.zip"
+        print_success "Repositório baixado e descompactado"
+    else
+        print_error "unzip não está instalado"
         exit 1
     fi
 }
