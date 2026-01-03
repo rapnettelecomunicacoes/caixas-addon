@@ -733,6 +733,7 @@ $status_licenca = $license->getLicenseStatus();
                                 <thead style="background: #f5f5f5; border-bottom: 2px solid #667eea;">
                                     <tr>
                                         <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Cliente</th>
+                                        <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Chave</th>
                                         <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Email</th>
                                         <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Provedor</th>
                                         <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Gerada em</th>
@@ -759,6 +760,12 @@ $status_licenca = $license->getLicenseStatus();
                                     ?>
                                         <tr style="border-bottom: 1px solid #ddd;">
                                             <td style="padding: 12px; border: 1px solid #ddd;"><strong><?php echo $lic['cliente']; ?></strong></td>
+                                            <td style="padding: 12px; border: 1px solid #ddd;">
+                                                <div style="display: flex; gap: 8px; align-items: center;">
+                                                    <code style="background: #f5f5f5; padding: 5px 8px; border-radius: 3px; font-size: 12px;"><?php echo $lic['chave']; ?></code>
+                                                    <button onclick="navigator.clipboard.writeText('<?php echo $lic['chave']; ?>').then(() => alert('Chave copiada!')).catch(e => console.error(e))" style="background: #667eea; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;">📋 Copiar</button>
+                                                </div>
+                                            </td>
                                             <td style="padding: 12px; border: 1px solid #ddd;"><?php echo !empty($lic['email']) ? $lic['email'] : '—'; ?></td>
                                             <td style="padding: 12px; border: 1px solid #ddd;"><?php echo !empty($lic['provedor']) ? $lic['provedor'] : '—'; ?></td>
                                             <td style="padding: 12px; border: 1px solid #ddd;"><?php echo isset($lic['created_at']) ? $lic['created_at'] : $lic['criacao']; ?></td>
