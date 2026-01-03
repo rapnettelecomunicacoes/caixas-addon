@@ -5,27 +5,25 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', dirname(__FILE__) . '/error.log');
 
-// === VERIFICAÇÃO DE SESSÃO ===
-session_name('mka');
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
+// === VERIFICAÇÃO DE AUTENTICAÇÃO FLEXÍVEL ===
+// Usa gestor que detecta qualquer variável de sessão do mk-auth
+require_once dirname(__FILE__) . '/src/auth_handler.php';
+AuthHandler::requireAuth();
 
 // === CARREGAR DEPENDÊNCIAS ===
 $addon_base = dirname(__FILE__);
 require_once $addon_base . '/addons.class.php';
 
 // === VALIDAR LICENÇA ===
-// if (file_exists($addon_base . "/src/LicenseMiddleware.php")) {
-//     require_once $addon_base . "/src/LicenseMiddleware.php";
-//     $middleware = new LicenseMiddleware();
-//     $status = $middleware->getStatus();
-//     if (!$status["instalada"] || (isset($status["expirada"]) && $status["expirada"])) {
-//         header("Location: src/license_install.php");
-//         exit;
-//     }
-// }
+if (file_exists($addon_base . "/src/LicenseMiddleware.php")) {
+    require_once $addon_base . "/src/LicenseMiddleware.php";
+    $middleware = new LicenseMiddleware();
+    $status = $middleware->getStatus();
+    if (!$status["instalada"] || (isset($status["expirada"]) && $status["expirada"])) {
+        header("Location: src/license_install.php");
+        exit;
+    }
+}
 
 // === CONTROLAR ROTEAMENTO ===
 $route = isset($_GET['_route']) ? $_GET['_route'] : '';
