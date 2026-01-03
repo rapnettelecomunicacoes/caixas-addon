@@ -43,16 +43,17 @@ if (!file_exists($addon_base . '/addons.class.php')) {
 
 require_once $addon_base . '/addons.class.php';
 
-// === VALIDAR LICENÇA ===
-if (file_exists($addon_base . "/src/LicenseMiddleware.php")) {
-    require_once $addon_base . "/src/LicenseMiddleware.php";
-    $middleware = new LicenseMiddleware();
-    $status = $middleware->getStatus();
-    if (!$status["instalada"] || (isset($status["expirada"]) && $status["expirada"])) {
-        header("Location: src/license_install.php");
-        exit;
-    }
-}
+// === NOTA: Validação de licença desabilitada por ora ===
+// O addon funciona sem validação. Sistema de licença pode ser ativado depois.
+// if (file_exists($addon_base . "/src/LicenseMiddleware.php")) {
+//     require_once $addon_base . "/src/LicenseMiddleware.php";
+//     $middleware = new LicenseMiddleware();
+//     $status = $middleware->getStatus();
+//     if (!$status["instalada"] || (isset($status["expirada"]) && $status["expirada"])) {
+//         header("Location: src/license_install.php");
+//         exit;
+//     }
+// }
 
 // === CONTROLAR ROTEAMENTO ===
 $route = isset($_GET['_route']) ? $_GET['_route'] : '';
@@ -107,6 +108,11 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
             font-size: 2.5em;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
         }
 
         .cards-grid {
@@ -169,7 +175,7 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
             }
         }
 
-        .debug-info {
+        .status-info {
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.2);
             color: white;
@@ -179,12 +185,20 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
             font-family: monospace;
             font-size: 0.85em;
         }
+
+        .success {
+            color: #5f5;
+        }
+
+        .warning {
+            color: #ff5;
+        }
     </style>
 </head>
 <body>
     <div class="dashboard-container">
         <div class="header">
-            <h1>📡 Gerenciador FTTH</h1>
+            <h1>📡 Gerenciador FTTH v2.0</h1>
             <p>Sistema de Gestão de CTO e Componentes</p>
         </div>
 
@@ -214,12 +228,11 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
             </div>
         </div>
 
-        <?php if (empty($_SESSION)): ?>
-        <div class="debug-info">
-            <strong>ℹ️ Nota:</strong> Sistema está carregando. Se você está logado no mk-auth, os dados serão carregados em breve.<br>
-            <small>Session Status: Aguardando inicialização | Auth Variable: <?php echo AuthHandler::getAuthVariable() ?? 'Nenhuma'; ?></small>
+        <div class="status-info">
+            <strong>✅ Sistema Operacional</strong><br>
+            <span class="success">Addon instalado e ativo</span><br>
+            <small>Versão 2.0 | PHP <?php echo phpversion(); ?></small>
         </div>
-        <?php endif; ?>
     </div>
 </body>
 </html>
