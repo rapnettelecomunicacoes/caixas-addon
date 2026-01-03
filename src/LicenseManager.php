@@ -238,7 +238,40 @@ class LicenseManager {
             return [];
         }
         
-        return $dados['historico'];
+        // Normalizar dados para adicionar chaves padrão
+        $licencas = [];
+        foreach ($dados['historico'] as $lic) {
+            $licenca = [
+                'cliente' => $lic['cliente'] ?? 'N/A',
+                'chave' => $lic['chave'] ?? '',
+                'email' => $lic['email'] ?? '',
+                'provedor' => $lic['provedor'] ?? '',
+                'criacao' => $lic['criacao'] ?? $lic['created_at'] ?? '',
+                'expiracao' => $lic['expiracao'] ?? '',
+                'status' => 'ativa',
+                'expirada' => false,
+                'dias_restantes' => 'ILIMITADO'
+            ];
+            
+            // Verificar se expirada
+            if (!empty($lic['expiracao'])) {
+                $dataExp = strtotime($lic['expiracao']);
+                $agora = time();
+                
+                if ($agora > $dataExp) {
+                    $licenca['expirada'] = true;
+                    $licenca['status'] = 'expirada';
+                    $licenca['dias_restantes'] = 0;
+                } else {
+                    $dias = intval(($dataExp - $agora) / 86400);
+                    $licenca['dias_restantes'] = $dias;
+                }
+            }
+            
+            $licencas[] = $licenca;
+        }
+        
+        return $licencas;
     }
 }
 ?>
