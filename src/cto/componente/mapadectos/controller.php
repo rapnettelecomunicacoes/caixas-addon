@@ -27,7 +27,7 @@ if (isset($connection) && $connection) {
     
     if ($result) {
         while ($row = mysqli_fetch_assoc($result)) {
-            $cto_id = (int)$row['id'];
+             = mysqli_real_escape_string(, );
             
             // Contar clientes atribuídos
             $count_sql = "SELECT COUNT(*) as total FROM sis_cliente 
@@ -41,7 +41,7 @@ if (isset($connection) && $connection) {
             $online_sql = "SELECT COUNT(*) as total FROM sis_cliente sc 
                           INNER JOIN radacct ra ON ra.username = sc.login 
                           WHERE ra.acctstoptime IS NULL
-                          AND ((sc.cto_id = " . $cto_id . " AND sc.cto_id IS NOT NULL AND sc.cto_id > 0)
+                          AND ((sc.caixa_herm = " . $cto_nome . " AND sc.caixa_herm IS NOT NULL AND sc.caixa_herm != "")
                                OR (sc.caixa_herm = '" . mysqli_real_escape_string($connection, $row['nome']) . "' AND sc.caixa_herm IS NOT NULL AND sc.caixa_herm != ''))";
             $online_result = mysqli_query($connection, $online_sql);
             $online_row = mysqli_fetch_assoc($online_result);
@@ -54,7 +54,7 @@ if (isset($connection) && $connection) {
                             CASE WHEN ra.radacctid IS NOT NULL THEN 'online' ELSE 'offline' END as status
                             FROM sis_cliente sc
                             LEFT JOIN radacct ra ON ra.username = sc.login AND ra.acctstoptime IS NULL
-                            WHERE (sc.cto_id = " . $cto_id . " AND sc.cto_id IS NOT NULL AND sc.cto_id > 0)
+                            WHERE (sc.caixa_herm = " . $cto_nome . " AND sc.caixa_herm IS NOT NULL AND sc.caixa_herm != "")
                             OR (sc.caixa_herm = '" . mysqli_real_escape_string($connection, $row['nome']) . "' AND sc.caixa_herm IS NOT NULL AND sc.caixa_herm != '')
                             ORDER BY sc.nome";
             $clientes_result = mysqli_query($connection, $clientes_sql);
@@ -82,7 +82,7 @@ if (isset($connection) && $connection) {
             }
             
             $ctos_data[] = array(
-                'id' => $cto_id,
+                'id' => intval($row['id']),
                 'nome' => $row['nome'],
                 'endereco' => $row['endereco'],
                 'latitude' => $lat,
