@@ -4,16 +4,31 @@ header('Content-Type: application/json; charset=utf-8');
 
 try {
     // Incluir arquivo de configuração do banco de dados
-    $db_file = dirname(__FILE__) . '/../../config/database.hhvm';
+    $db_file = dirname(__FILE__) . '/../../config/database.php';
+    if (!file_exists($db_file)) {
+        $db_file = dirname(__FILE__) . '/../../config/database.hhvm';
+    }
+    
+    // Carregar configuração do banco
     if (file_exists($db_file)) {
         require_once $db_file;
-        $conn = isset($GLOBALS['connection']) ? $GLOBALS['connection'] : null;
     }
 
-    // Se não conseguiu via global, tentar conexão direta
-    if (!$conn) {
-        $conn = @mysqli_connect('localhost', 'root', 'rapnet@2024', 'mkradius');
+    // Conectar ao banco de dados
+    if (!isset($Host)) {
+        $Host = 'localhost';
     }
+    if (!isset($user)) {
+        $user = 'root';
+    }
+    if (!isset($pass)) {
+        $pass = 'vertrigo';
+    }
+    if (!isset($db_name)) {
+        $db_name = 'mkradius';
+    }
+    
+    $conn = @mysqli_connect($Host, $user, $pass, $db_name);
 
     if (!$conn) {
         throw new Exception('Erro ao conectar ao banco de dados: ' . mysqli_connect_error());
