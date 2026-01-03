@@ -5,77 +5,92 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', dirname(__FILE__) . '/error.log');
 
-// === INICIALIZAR SESSÃO COM MESMO MÉTODO DO MK-AUTH ===
+// === INICIALIZAR SESSÃO ===
 session_name('mka');
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// === DEBUG: Log da sessão recebida ===
-error_log("INDEX.PHP - SESSION COUNT: " . count($_SESSION));
-error_log("INDEX.PHP - SESSION VARS: " . json_encode(array_keys($_SESSION)));
-
-// === VERIFICAÇÃO DE AUTENTICAÇÃO FLEXÍVEL ===
-// Não redirecionar se sessão vazia - o mk-auth vai cuidar
+// === CARREGAR AUTH HANDLER ===
 require_once dirname(__FILE__) . '/src/auth_handler.php';
 
-// Se sessão está vazia, pode estar em redirecionamento do mk-auth
-if (empty($_SESSION)) {
-    // Não fazer nada - deixar a página carregar
-    // O mk-auth vai cuidar da autenticação
-    error_log("INDEX.PHP - SESSÃO VAZIA - DEIXANDO mk-auth CUIDAR");
-} else {
-    // Se tem sessão, verificar se está autenticado
-    if (!AuthHandler::isAuthenticated()) {
-        header("Location: ../../");
-        exit();
-    }
+// Se sessão está vazia, ainda assim deixar carregar o dashboard
+if (!empty($_SESSION) && !AuthHandler::isAuthenticated()) {
+    header("Location: ../../");
+    exit();
 }
 
-// === CARREGAR DEPENDÊNCIAS ===
+// === DADOS DO ADDON ===
+$addon_name = "Gerenciador FTTH";
+$addon_version = "2.0";
 $addon_base = dirname(__FILE__);
 
-// Verificar se addons.class.php existe
-if (!file_exists($addon_base . '/addons.class.php')) {
-    // Se não existe, criar um arquivo dummy
-    file_put_contents($addon_base . '/addons.class.php', '<?php class Addons {} ?>');
-}
-
-require_once $addon_base . '/addons.class.php';
-
-// === NOTA: Validação de licença desabilitada por ora ===
-// O addon funciona sem validação. Sistema de licença pode ser ativado depois.
-// if (file_exists($addon_base . "/src/LicenseMiddleware.php")) {
-//     require_once $addon_base . "/src/LicenseMiddleware.php";
-//     $middleware = new LicenseMiddleware();
-//     $status = $middleware->getStatus();
-//     if (!$status["instalada"] || (isset($status["expirada"]) && $status["expirada"])) {
-//         header("Location: src/license_install.php");
-//         exit;
-//     }
-// }
-
-// === CONTROLAR ROTEAMENTO ===
-$route = isset($_GET['_route']) ? $_GET['_route'] : '';
-
-// === INCLUIR APLICAÇÃO SE HOUVER ROTA ===
-if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup', 'maps', 'mapadeclientes', 'mapadectos', 'configurar'])) {
-    $app_file = $addon_base . '/src/cto/componente/' . $route . '/index.php';
-    if (file_exists($app_file)) {
-        include_once $app_file;
-        exit();
-    }
-}
-
-// === RENDERIZAR DASHBOARD PADRÃO ===
+// Funcionalidades disponíveis
+$features = [
+    [
+        'icon' => '📊',
+        'title' => 'Componentes CTO',
+        'description' => 'Gerencie todos os componentes de seus CTOs instalados na rede.',
+        'link' => '?_route=inicio',
+        'color' => '#667eea'
+    ],
+    [
+        'icon' => '➕',
+        'title' => 'Adicionar Componente',
+        'description' => 'Registre novos componentes e CTO no sistema.',
+        'link' => '?_route=adicionar',
+        'color' => '#764ba2'
+    ],
+    [
+        'icon' => '✏️',
+        'title' => 'Editar Componentes',
+        'description' => 'Modifique informações de componentes existentes.',
+        'link' => '?_route=editar',
+        'color' => '#f093fb'
+    ],
+    [
+        'icon' => '🗺️',
+        'title' => 'Mapas',
+        'description' => 'Visualize a localização dos CTOs em mapas interativos.',
+        'link' => '?_route=maps',
+        'color' => '#4facfe'
+    ],
+    [
+        'icon' => '👥',
+        'title' => 'Mapa de Clientes',
+        'description' => 'Visualize distribuição de clientes por área.',
+        'link' => '?_route=mapadeclientes',
+        'color' => '#43e97b'
+    ],
+    [
+        'icon' => '��',
+        'title' => 'Mapa de CTOs',
+        'description' => 'Visualize todos os CTOs na rede.',
+        'link' => '?_route=mapadectos',
+        'color' => '#fa709a'
+    ],
+    [
+        'icon' => '⚙️',
+        'title' => 'Configurações',
+        'description' => 'Configure opções do sistema e preferências.',
+        'link' => '?_route=configurar',
+        'color' => '#30cfd0'
+    ],
+    [
+        'icon' => '💾',
+        'title' => 'Backup',
+        'description' => 'Realize backup e restaure dados do sistema.',
+        'link' => '?_route=backup',
+        'color' => '#a8edea'
+    ]
+];
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="UTF-8">
-    <title>MK - AUTH :: Gerenciador FTTH</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $addon_name; ?> v<?php echo $addon_version; ?></title>
     <style>
         * {
             margin: 0;
@@ -84,15 +99,13 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
         }
 
         html, body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
-            width: 100%;
-            height: 100%;
         }
 
-        .dashboard-container {
+        .container {
             max-width: 1400px;
             margin: 0 auto;
         }
@@ -100,138 +113,127 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
         .header {
             text-align: center;
             color: white;
-            margin-bottom: 40px;
-            animation: fadeInDown 0.6s ease-out;
+            margin-bottom: 50px;
         }
 
         .header h1 {
-            font-size: 2.5em;
+            font-size: 3em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            font-weight: 700;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
         }
 
         .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
+            font-size: 1.2em;
+            opacity: 0.95;
         }
 
-        .cards-grid {
+        .version {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
         }
 
-        .card {
+        .feature-card {
             background: white;
             border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            animation: fadeInUp 0.6s ease-out;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
         }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
         }
 
-        .card-icon {
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        }
+
+        .feature-card a {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .feature-icon {
             font-size: 2.5em;
             margin-bottom: 15px;
         }
 
-        .card h3 {
+        .feature-card h3 {
             color: #333;
-            margin-bottom: 10px;
             font-size: 1.3em;
+            margin-bottom: 10px;
+            font-weight: 600;
         }
 
-        .card p {
+        .feature-card p {
             color: #666;
             font-size: 0.95em;
             line-height: 1.6;
         }
 
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .footer {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            padding: 20px;
+            font-size: 0.9em;
         }
 
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
+
+            .features-grid {
+                grid-template-columns: 1fr;
             }
-        }
-
-        .status-info {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 30px;
-            font-family: monospace;
-            font-size: 0.85em;
-        }
-
-        .success {
-            color: #5f5;
-        }
-
-        .warning {
-            color: #ff5;
         }
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="container">
         <div class="header">
-            <h1>📡 Gerenciador FTTH v2.0</h1>
-            <p>Sistema de Gestão de CTO e Componentes</p>
+            <h1>📡 <?php echo $addon_name; ?><span class="version">v<?php echo $addon_version; ?></span></h1>
+            <p>Sistema de Gestão de CTO e Componentes FTTH</p>
         </div>
 
-        <div class="cards-grid">
-            <div class="card">
-                <div class="card-icon">📊</div>
-                <h3>Componentes CTO</h3>
-                <p>Gerencie todos os componentes de seus CTOs instalados na rede.</p>
-            </div>
-
-            <div class="card">
-                <div class="card-icon">🗺️</div>
-                <h3>Mapas e Localização</h3>
-                <p>Visualize a localização dos CTOs e componentes em mapas interativos.</p>
-            </div>
-
-            <div class="card">
-                <div class="card-icon">⚙️</div>
-                <h3>Configurações</h3>
-                <p>Configure opções do sistema e preferências de visualização.</p>
-            </div>
-
-            <div class="card">
-                <div class="card-icon">💾</div>
-                <h3>Backup</h3>
-                <p>Realize backup e restaure dados do seu sistema.</p>
-            </div>
+        <div class="features-grid">
+            <?php foreach ($features as $feature): ?>
+                <div class="feature-card">
+                    <a href="<?php echo htmlspecialchars($feature['link']); ?>">
+                        <div class="feature-icon"><?php echo $feature['icon']; ?></div>
+                        <h3><?php echo htmlspecialchars($feature['title']); ?></h3>
+                        <p><?php echo htmlspecialchars($feature['description']); ?></p>
+                    </a>
+                </div>
+            <?php endforeach; ?>
         </div>
 
-        <div class="status-info">
-            <strong>✅ Sistema Operacional</strong><br>
-            <span class="success">Addon instalado e ativo</span><br>
-            <small>Versão 2.0 | PHP <?php echo phpversion(); ?></small>
+        <div class="footer">
+            <p>Gerenciador FTTH © 2026 | Desenvolvido por Patrick Nascimento</p>
         </div>
     </div>
 </body>
