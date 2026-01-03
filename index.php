@@ -5,36 +5,9 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', dirname(__FILE__) . '/error.log');
 
-// === NOTA IMPORTANTE ===
-// Se a sessão está vazia, o mk-auth já está controlando a autenticação no nível do sistema
-// Não forçamos redirect aqui, deixamos a página renderizar e o mk-auth controla o acesso
-
 // === CARREGAR DEPENDÊNCIAS ===
 $addon_base = dirname(__FILE__);
 require_once $addon_base . '/addons.class.php';
-
-// === VERIFICAÇÃO DE AUTENTICAÇÃO FLEXÍVEL (SÓ SE SESSION NÃO VAZIA) ===
-// Se a sessão tem dados, verificamos autenticação via AuthHandler
-if (!empty($_SESSION)) {
-    require_once dirname(__FILE__) . '/src/auth_handler.php';
-    if (!AuthHandler::isAuthenticated()) {
-        // Se sessão existe mas não está autenticado, redireciona
-        header("Location: /admin/");
-        exit;
-    }
-}
-// Se sessão está vazia, deixamos a página renderizar (mk-auth já controla no nível do sistema)
-
-// === VALIDAR LICENÇA ===
-if (file_exists($addon_base . "/src/LicenseMiddleware.php")) {
-    require_once $addon_base . "/src/LicenseMiddleware.php";
-    $middleware = new LicenseMiddleware();
-    $status = $middleware->getStatus();
-    if (!$status["instalada"] || (isset($status["expirada"]) && $status["expirada"])) {
-        header("Location: src/license_install.php");
-        exit;
-    }
-}
 
 // === CONTROLAR ROTEAMENTO ===
 $route = isset($_GET['_route']) ? $_GET['_route'] : '';
@@ -196,7 +169,7 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
         <div class="features-grid">
             <a href="?_route=inicio" class="feature-card">
                 <div>
-                    <div class="card-icon">��</div>
+                    <div class="card-icon">📊</div>
                     <div class="card-title">Componentes CTO</div>
                     <div class="card-description">Visualize e gerencie todos os componentes cadastrados na sua rede.</div>
                 </div>
