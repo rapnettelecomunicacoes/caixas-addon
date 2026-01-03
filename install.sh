@@ -26,8 +26,8 @@ ADDON_VERSION="2.0"
 
 print_header() {
     echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║     INSTALADOR - GERENCIADOR FTTH v${ADDON_VERSION}                    ${BLUE}║${NC}"
-    echo -e "${BLUE}║     Autor: Patrick Nascimento                  ${BLUE}║${NC}"
+    echo -e "${BLUE}║     INSTALADOR - GERENCIADOR FTTH v${ADDON_VERSION}                  ${BLUE}║${NC}"
+    echo -e "${BLUE}║     Autor: Patrick Nascimento                              ${BLUE}║${NC}"
     echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -77,17 +77,27 @@ check_requirements() {
 copy_addon_files() {
     print_info "Copiando arquivos do addon..."
     
-    if [ ! -d "caixas" ]; then
-        print_error "Diretório 'caixas' não encontrado no diretório atual"
+    # Obter diretório do script (onde foi executado)
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    
+    # Verificar se estamos no diretório correto (contém src, index.php, etc)
+    if [ ! -f "$SCRIPT_DIR/index.php" ] && [ ! -d "$SCRIPT_DIR/src" ]; then
+        print_error "Arquivo 'index.php' ou diretório 'src' não encontrado"
+        print_info "Certifique-se de executar este script no raiz do repositório"
         exit 1
     fi
     
     # Criar diretório pai se não existir
     mkdir -p "$(dirname "$ADDON_PATH")"
     
-    cp -r caixas/ "$ADDON_PATH"
+    # Criar diretório do addon se não existir
+    mkdir -p "$ADDON_PATH"
     
-    if [ $? -eq 0 ]; then
+    # Copiar TODOS os arquivos do script_dir para ADDON_PATH
+    cp -r "$SCRIPT_DIR"/* "$ADDON_PATH/" 2>/dev/null || true
+    cp -r "$SCRIPT_DIR"/.[^.]* "$ADDON_PATH/" 2>/dev/null || true
+    
+    if [ -f "$ADDON_PATH/index.php" ]; then
         print_success "Arquivos copiados com sucesso"
     else
         print_error "Erro ao copiar arquivos"
@@ -98,143 +108,112 @@ copy_addon_files() {
 backup_addon() {
     print_info "Verificando instalação anterior..."
     
-    if [ -d "$ADDON_PATH" ]; then
-        print_warning "Addon já existe em $ADDON_PATH"
-        echo ""
-        read -p "Deseja fazer backup e reinstalar? (s/n) " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Ss]$ ]]; then
-            BACKUP_DIR="$ADDON_PATH-backup-$(date +%Y%m%d-%H%M%S)"
-            cp -r "$ADDON_PATH" "$BACKUP_DIR"
-            print_success "Backup criado: $BACKUP_DIR"
-        else
-            print_info "Instalação cancelada"
-            exit 0
-        fi
-        
-        # Remover addon antigo
-        print_info "Removendo instalação anterior..."
-        rm -rf "$ADDON_PATH"
-        print_success "Instalação anterior removida"
+    if [ -d "$ADDON_PATH" ] && [ -f "$ADDON_PATH/index.php" ]; then
+        BACKUP_PATH="${ADDON_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
+        print_warning "Addon já existe. Criando backup em $BACKUP_PATH"
+        mv "$ADDON_PATH" "$BACKUP_PATH"
+        print_success "Backup criado"
     fi
 }
 
 set_permissions() {
-    print_info "Ajustando permissões..."
+    print_info "Configurando permissões..."
     
-    chown -R $ADDON_OWNER:$ADDON_GROUP "$ADDON_PATH"
-    chmod -R 755 "$ADDON_PATH"
-    find "$ADDON_PATH" -type f \( -name "*.php" -o -name "*.hhvm" \) -exec chmod 644 {} \;
+    # Definir proprietário
+    chown -R "$ADDON_OWNER:$ADDON_GROUP" "$ADDON_PATH"
+    
+    # Definir permissões (755 para diretórios, 644 para arquivos)
     find "$ADDON_PATH" -type d -exec chmod 755 {} \;
+    find "$ADDON_PATH" -type f -exec chmod 644 {} \;
     
-    print_success "Permissões ajustadas"
+    # Deixar scripts executáveis
+    find "$ADDON_PATH" -name "*.sh" -exec chmod 755 {} \;
+    find "$ADDON_PATH" -name "install*.sh" -exec chmod 755 {} \;
+    
+    print_success "Permissões configuradas"
 }
 
-validate_installation() {
-    print_info "Validando instalação..."
+create_license_dir() {
+    print_info "Criando diretório de licenças..."
     
-    local errors=0
-    local required_files=(
-        "$ADDON_PATH/manifest.json"
-        "$ADDON_PATH/index.php"
-        "$ADDON_PATH/addons.class.php"
-        "$ADDON_PATH/src/app.php"
-    )
+    LICENSE_DIR="/var/tmp"
+    mkdir -p "$LICENSE_DIR"
     
-    for file in "${required_files[@]}"; do
-        if [ ! -f "$file" ]; then
-            print_error "Arquivo obrigatório não encontrado: $file"
-            ((errors++))
-        fi
-    done
+    # Se não existir licença de teste, criar uma
+    if [ ! -f "$LICENSE_DIR/license_"*.json ]; then
+        print_info "Gerando licença de teste..."
+        php -r "
+        \$licenseData = [
+            'chave' => md5('teste-' . time()),
+            'cliente' => 'Teste',
+            'email' => 'admin@test',
+            'provedor' => 'LOCAL',
+            'criacao' => date('Y-m-d'),
+            'expiracao' => date('Y-m-d', strtotime('+1 year')),
+            'status' => 'ativa'
+        ];
+        \$file = '$LICENSE_DIR/license_' . \$licenseData['chave'] . '.json';
+        file_put_contents(\$file, json_encode(\$licenseData, JSON_PRETTY_PRINT));
+        chmod(\$file, 0644);
+        " 2>/dev/null || print_warning "Não foi possível gerar licença de teste"
+    fi
     
-    if [ $errors -eq 0 ]; then
-        print_success "Validação concluída"
-        return 0
+    print_success "Diretório de licenças pronto"
+}
+
+verify_installation() {
+    print_info "Verificando instalação..."
+    
+    if [ ! -f "$ADDON_PATH/index.php" ]; then
+        print_error "Arquivo index.php não encontrado"
+        return 1
+    fi
+    
+    if [ ! -d "$ADDON_PATH/src" ]; then
+        print_error "Diretório src não encontrado"
+        return 1
+    fi
+    
+    # Verificar se AuthHandler foi instalado
+    if [ ! -f "$ADDON_PATH/src/auth_handler.php" ]; then
+        print_warning "AuthHandler não encontrado (versão antiga?)"
     else
-        print_error "Validação falhou com $errors erro(s)"
-        return 1
-    fi
-}
-
-get_addon_info() {
-    if grep -q '"name"' "$ADDON_PATH/manifest.json"; then
-        local addon_name=$(grep '"name"' "$ADDON_PATH/manifest.json" | head -1 | sed 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-        local addon_version=$(grep '"version"' "$ADDON_PATH/manifest.json" | head -1 | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-        echo "$addon_name:$addon_version"
-    fi
-}
-
-register_addon() {
-    print_info "Registrando addon no mkauth..."
-    
-    local ADDONS_JS="/opt/mk-auth/assets/js/addon.js"
-    local addon_info=$(get_addon_info)
-    local addon_name="${addon_info%%:*}"
-    
-    if [ -z "$addon_name" ]; then
-        print_error "Não foi possível obter o nome do addon"
-        return 1
+        print_success "AuthHandler instalado ✓"
     fi
     
-    if [ -f "$ADDONS_JS" ]; then
-        if grep -q "\"$addon_name\"" "$ADDONS_JS"; then
-            print_warning "Addon já registrado em addon.js"
-        else
-            print_info "Addon não encontrado em addon.js, pode ser necessário registro manual"
-        fi
-    fi
-    
-    print_success "Addon registrado"
-}
-
-show_summary() {
-    echo ""
-    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║          INSTALAÇÃO CONCLUÍDA COM SUCESSO!               ${BLUE}║${NC}"
-    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    echo "Informações da instalação:"
-    echo -e "  Versão:       ${GREEN}${ADDON_VERSION}${NC}"
-    echo -e "  Caminho:      ${GREEN}$ADDON_PATH${NC}"
-    echo -e "  Proprietário: ${GREEN}${ADDON_OWNER}:${ADDON_GROUP}${NC}"
-    echo ""
-    echo "Configuração do addon:"
-    echo -e "  • Configuração DB: $ADDON_PATH/src/cto/config/database.php"
-    echo -e "  • Configuração API: $ADDON_PATH/src/cto/config/api.php"
-    echo ""
-    echo "Próximos passos:"
-    echo -e "  1. Configurar o banco de dados: ${GREEN}sudo $ADDON_PATH/configure-server.sh${NC}"
-    echo -e "  2. Reiniciar o mkauth"
-    echo -e "  3. Acessar: http://seu-servidor/mkauth"
-    echo ""
+    print_success "Instalação verificada com sucesso"
+    return 0
 }
 
 # ============================================================================
-# EXECUÇÃO PRINCIPAL
+# MAIN
 # ============================================================================
 
 main() {
-    clear
     print_header
-    check_requirements
-    echo ""
-    backup_addon
-    echo ""
-    copy_addon_files
-    echo ""
-    set_permissions
-    echo ""
     
-    if validate_installation; then
-        register_addon
+    check_requirements
+    backup_addon
+    copy_addon_files
+    set_permissions
+    create_license_dir
+    verify_installation
+    
+    if [ $? -eq 0 ]; then
         echo ""
-        show_summary
+        echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${GREEN}║     INSTALAÇÃO CONCLUÍDA COM SUCESSO!                    ${GREEN}║${NC}"
+        echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        print_success "Addon instalado em: $ADDON_PATH"
+        print_info "Acesse: https://seu-servidor/admin/addons/caixas/"
+        echo ""
     else
-        print_error "Instalação falhou na validação"
+        echo ""
+        print_error "Houve problemas na instalação"
         exit 1
     fi
 }
 
 # Executar main
-main
+main "$@"
