@@ -3,7 +3,7 @@
 # ============================================================================
 # INSTALADOR AUTOMÁTICO - GERENCIADOR FTTH v2.0
 # Autor: Patrick Nascimento
-# Data: 2 de Janeiro de 2026 - VERSÃO 3.1 (Com detecção PHP-FPM)
+# Data: 2 de Janeiro de 2026 - VERSÃO 3.2 (Corrigido sed)
 # ============================================================================
 
 # Cores para output
@@ -120,10 +120,12 @@ Alias /api /opt/mk-auth/api
 EOFCONF
         print_success "api.conf criado"
     else
-        # Atualizar socket no arquivo existente
+        # Atualizar socket no arquivo existente usando # como delimitador
+        # Isso evita problemas com as barras no caminho do socket
         if grep -q "SetHandler.*proxy:unix:" "$API_CONF"; then
-            # Substituir socket existente
-            sed -i "s|SetHandler.*proxy:unix:[^|]*|SetHandler \"proxy:unix:${PHP_SOCKET}\"|g" "$API_CONF"
+            # Escapar as barras para usar em substituição
+            PHP_SOCKET_ESCAPED=$(echo "$PHP_SOCKET" | sed 's/\//\\\//g')
+            sed -i "s#SetHandler.*proxy:unix:[^|]*#SetHandler \"proxy:unix:${PHP_SOCKET_ESCAPED}\"#g" "$API_CONF"
             print_success "Socket atualizado no api.conf"
         else
             print_warning "Padrão de socket não encontrado no api.conf"
@@ -136,7 +138,7 @@ EOFCONF
             apache2ctl graceful 2>/dev/null || true
             print_success "Apache recarregado com sucesso"
         else
-            print_warning "Erro na configuração do Apache (não recarregado)"
+            print_warning "Erro na configuração do Apache (verifique manualmente com: apache2ctl configtest)"
         fi
     fi
 }
