@@ -5,6 +5,12 @@
  * Apenas para proprietário do addon
  */
 
+// Headers para desabilitar cache
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+header('Content-Type: text/html; charset=utf-8');
+
 // Debug: mostrar erros
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -457,16 +463,16 @@ $status_licenca = $license->getLicenseStatus();
         <div class="content">
             <!-- Tabs -->
             <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('gerar')">
+                <button class="tab-btn active" onclick="window.switchTab('gerar')">
                     📝 Gerar Licença
                 </button>
-                <button class="tab-btn" onclick="switchTab('todas')">
+                <button class="tab-btn" onclick="window.switchTab('todas')">
                     📋 Todas as Licenças
                 </button>
-                <button class="tab-btn" onclick="switchTab('status')">
+                <button class="tab-btn" onclick="window.switchTab('status')">
                     📊 Status da Licença
                 </button>
-                <button class="tab-btn" onclick="switchTab('instrucoes')">
+                <button class="tab-btn" onclick="window.switchTab('instrucoes')">
                     📖 Instruções
                 </button>
             </div>
@@ -519,7 +525,7 @@ $status_licenca = $license->getLicenseStatus();
                                 <label style="margin-bottom: 10px;">Chave de Licença:</label>
                                 <div class="code-block" style="display: flex; align-items: center;">
                                     <code id="chave-gerada"><?php echo $resultado['chave']; ?></code>
-                                    <button class="copy-btn" onclick="copiarChave()">Copiar</button>
+                                    <button class="copy-btn" onclick="window.copiarChave()">Copiar</button>
                                 </div>
                             </div>
                             
@@ -912,7 +918,7 @@ $status_licenca = $license->getLicenseStatus();
                     // Ativar o botão correspondente
                     var tabButtons = document.querySelectorAll('.tab-btn');
                     tabButtons.forEach(function(btn) {
-                        if (btn.getAttribute('onclick') === "switchTab('" + abaParam + "')") {
+                        if (btn.getAttribute('onclick') === "window.switchTab('" + abaParam + "')") {
                             btn.classList.add('active');
                         }
                     });
