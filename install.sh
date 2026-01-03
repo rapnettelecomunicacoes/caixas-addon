@@ -219,7 +219,8 @@ create_license_dir() {
     print_success "Diretório de licenças pronto"
 }
 
-verify_installation() {
+run_migrations
+    verify_installation() {
     print_info "Verificando instalação..."
     
     if [ ! -f "$ADDON_PATH/index.php" ]; then
@@ -256,6 +257,7 @@ main() {
     copy_addon_files
     set_permissions
     create_license_dir
+    run_migrations
     verify_installation
     
     if [ $? -eq 0 ]; then
@@ -277,3 +279,22 @@ main() {
 
 # Executar main
 main "$@"
+
+# ============================================================================
+# EXECUTAR MIGRATIONS
+# ============================================================================
+
+run_migrations() {
+    print_info "Executando migrações do banco de dados..."
+    
+    if [ -f "$ADDON_PATH/src/migrations/migrate.php" ]; then
+        php "$ADDON_PATH/src/migrations/migrate.php" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            print_success "Migrações executadas com sucesso"
+            return 0
+        else
+            print_warning "Erro ao executar migrações (continuando...)"
+            return 0
+        fi
+    fi
+}
