@@ -471,8 +471,8 @@
             const ctosList = document.getElementById('ctosList');
             ctosList.innerHTML = '<div class="loading">Carregando CTOs...</div>';
             
-            // Usar o endpoint AJAX do addon principal
-            const urlCarregarCtos = '?ajax=carregarCtos';
+            // Usar o endpoint direto para carregar CTOs
+            const urlCarregarCtos = '/admin/addons/caixas/src/cto/componente/viabilidade/carregarCtos.php';
             
             console.log('Buscando CTOs em:', urlCarregarCtos);
             
