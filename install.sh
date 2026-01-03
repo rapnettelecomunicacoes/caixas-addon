@@ -3,7 +3,7 @@
 # ============================================================================
 # INSTALADOR AUTOMÁTICO - GERENCIADOR FTTH v2.0
 # Autor: Patrick Nascimento
-# Data: 2 de Janeiro de 2026 - VERSÃO 3.0 (Sem Git)
+# Data: 2 de Janeiro de 2026 - VERSÃO 3.1 (Com detecção PHP-FPM)
 # ============================================================================
 
 # Cores para output
@@ -57,6 +57,89 @@ cleanup() {
 }
 
 trap cleanup EXIT
+
+# ============================================================================
+# DETECÇÃO E CONFIGURAÇÃO DO SOCKET PHP-FPM
+# ============================================================================
+
+detect_php_socket() {
+    print_info "Detectando socket PHP-FPM disponível..."
+    
+    # Lista de sockets a procurar em ordem de preferência
+    SOCKET_PATHS=(
+        "/run/php-api.sock"
+        "/run/php-admin.sock"
+        "/run/php-central.sock"
+        "/run/php-publico.sock"
+        "/run/php-boleto.sock"
+        "/run/php-retorno.sock"
+        "/run/php-fpm.sock"
+        "/var/run/php-fpm.sock"
+        "/var/run/php7.3-fpm.sock"
+        "/var/run/php8.0-fpm.sock"
+    )
+    
+    for socket in "${SOCKET_PATHS[@]}"; do
+        if [ -e "$socket" ] && [ -S "$socket" ]; then
+            print_success "Socket encontrado: $socket"
+            echo "$socket"
+            return 0
+        fi
+    done
+    
+    # Se nenhum socket foi encontrado, usar o padrão (será criado pelo PHP-FPM depois)
+    print_warning "Nenhum socket PHP-FPM encontrado. Usando socket padrão: /run/php-api.sock"
+    echo "/run/php-api.sock"
+    return 0
+}
+
+configure_apache_socket() {
+    local PHP_SOCKET=$1
+    local API_CONF="/etc/apache2/conf-available/api.conf"
+    
+    print_info "Atualizando configuração Apache com socket: $PHP_SOCKET"
+    
+    # Se o arquivo api.conf não existir, criar
+    if [ ! -f "$API_CONF" ]; then
+        print_warning "api.conf não encontrado, criando arquivo..."
+        cat > "$API_CONF" << EOFCONF
+# SISTEMA MK-AUTH64 DEFAULT APACHE
+
+Alias /api /opt/mk-auth/api
+<Directory /opt/mk-auth/api>
+        <FilesMatch "\.(php|hhvm)$">
+                SetHandler "proxy:unix:${PHP_SOCKET}|fcgi://127.0.0.1/"
+        </FilesMatch>
+        Options Indexes FollowSymLinks Includes ExecCGI
+        AllowOverride All
+        Order deny,allow
+        Require all granted
+</Directory>
+
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
+EOFCONF
+        print_success "api.conf criado"
+    else
+        # Atualizar socket no arquivo existente
+        if grep -q "SetHandler.*proxy:unix:" "$API_CONF"; then
+            # Substituir socket existente
+            sed -i "s|SetHandler.*proxy:unix:[^|]*|SetHandler \"proxy:unix:${PHP_SOCKET}\"|g" "$API_CONF"
+            print_success "Socket atualizado no api.conf"
+        else
+            print_warning "Padrão de socket não encontrado no api.conf"
+        fi
+    fi
+    
+    # Recarregar Apache se estiver rodando
+    if command -v apache2ctl &> /dev/null; then
+        if apache2ctl configtest 2>/dev/null | grep -q "Syntax OK"; then
+            apache2ctl graceful 2>/dev/null || true
+            print_success "Apache recarregado com sucesso"
+        else
+            print_warning "Erro na configuração do Apache (não recarregado)"
+        fi
+    fi
+}
 
 # ============================================================================
 # VERIFICAÇÃO DE REQUISITOS
@@ -219,72 +302,6 @@ create_license_dir() {
     print_success "Diretório de licenças pronto"
 }
 
-run_migrations
-    verify_installation() {
-    print_info "Verificando instalação..."
-    
-    if [ ! -f "$ADDON_PATH/index.php" ]; then
-        print_error "Arquivo index.php não encontrado"
-        return 1
-    fi
-    
-    if [ ! -d "$ADDON_PATH/src" ]; then
-        print_error "Diretório src não encontrado"
-        return 1
-    fi
-    
-    # Verificar se AuthHandler foi instalado
-    if [ ! -f "$ADDON_PATH/src/auth_handler.php" ]; then
-        print_warning "AuthHandler não encontrado (versão antiga?)"
-    else
-        print_success "AuthHandler instalado ✓"
-    fi
-    
-    print_success "Instalação verificada com sucesso"
-    return 0
-}
-
-# ============================================================================
-# MAIN
-# ============================================================================
-
-main() {
-    print_header
-    
-    check_requirements
-    download_addon
-    backup_addon
-    copy_addon_files
-    set_permissions
-    create_license_dir
-    check_license
-    run_migrations
-    verify_installation
-    
-    if [ $? -eq 0 ]; then
-        echo ""
-        echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
-        echo -e "${GREEN}║     INSTALAÇÃO CONCLUÍDA COM SUCESSO!                    ${GREEN}║${NC}"
-        echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
-        echo ""
-        print_success "Addon instalado em: $ADDON_PATH"
-        print_info "Acesse: https://seu-servidor/admin/addons/caixas/"
-        echo ""
-        return 0
-    else
-        echo ""
-        print_error "Houve problemas na instalação"
-        exit 1
-    fi
-}
-
-# Executar main
-main "$@"
-
-# ============================================================================
-# EXECUTAR MIGRATIONS
-# ============================================================================
-
 run_migrations() {
     print_info "Executando migrações do banco de dados..."
     
@@ -299,10 +316,6 @@ run_migrations() {
         fi
     fi
 }
-
-# ============================================================================
-# VALIDAÇÃO E INSTALAÇÃO DE LICENÇA
-# ============================================================================
 
 check_license() {
     print_info "Verificando licença..."
@@ -337,3 +350,70 @@ EOJSON
         print_success "Arquivo de licença encontrado: $LICENSE_FILE"
     fi
 }
+
+verify_installation() {
+    print_info "Verificando instalação..."
+    
+    if [ ! -f "$ADDON_PATH/index.php" ]; then
+        print_error "Arquivo index.php não encontrado"
+        return 1
+    fi
+    
+    if [ ! -d "$ADDON_PATH/src" ]; then
+        print_error "Diretório src não encontrado"
+        return 1
+    fi
+    
+    # Verificar se AuthHandler foi instalado
+    if [ ! -f "$ADDON_PATH/src/auth_handler.php" ]; then
+        print_warning "AuthHandler não encontrado (versão antiga?)"
+    else
+        print_success "AuthHandler instalado ✓"
+    fi
+    
+    print_success "Instalação verificada com sucesso"
+    return 0
+}
+
+# ============================================================================
+# MAIN
+# ============================================================================
+
+main() {
+    print_header
+    
+    check_requirements
+    
+    # Detectar socket PHP-FPM e configurar Apache
+    PHP_SOCKET=$(detect_php_socket)
+    configure_apache_socket "$PHP_SOCKET"
+    
+    download_addon
+    backup_addon
+    copy_addon_files
+    set_permissions
+    create_license_dir
+    check_license
+    run_migrations
+    verify_installation
+    
+    if [ $? -eq 0 ]; then
+        echo ""
+        echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${GREEN}║     INSTALAÇÃO CONCLUÍDA COM SUCESSO!                    ${GREEN}║${NC}"
+        echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        print_success "Addon instalado em: $ADDON_PATH"
+        print_success "Socket PHP-FPM configurado: $PHP_SOCKET"
+        print_info "Acesse: https://seu-servidor/admin/addons/caixas/"
+        echo ""
+        return 0
+    else
+        echo ""
+        print_error "Houve problemas na instalação"
+        exit 1
+    fi
+}
+
+# Executar main
+main "$@"
