@@ -224,6 +224,58 @@ class LicenseManager {
     }
     
     /**
+     * Deleta uma licença específica do histórico
+     */
+    public function deleteLicense($chave) {
+        if (!file_exists($this->licenseFile)) {
+            return ['erro' => true, 'mensagem' => 'Arquivo de licença não encontrado'];
+        }
+        
+        try {
+            $conteudo = file_get_contents($this->licenseFile);
+            $dados = json_decode($conteudo, true);
+            
+            if (!isset($dados['historico'])) {
+                return ['erro' => true, 'mensagem' => 'Sem histórico de licenças'];
+            }
+            
+            // Procurar pela chave e remover
+            $encontrada = false;
+            foreach ($dados['historico'] as $index => $lic) {
+                if (($lic['chave'] ?? '') === $chave) {
+                    unset($dados['historico'][$index]);
+                    $encontrada = true;
+                    break;
+                }
+            }
+            
+            if (!$encontrada) {
+                return ['erro' => true, 'mensagem' => 'Licença não encontrada'];
+            }
+            
+            // Reindexar o array
+            $dados['historico'] = array_values($dados['historico']);
+            
+            // Salvar arquivo
+            if (file_put_contents($this->licenseFile, json_encode($dados, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX)) {
+                // Ajustar permissões
+                @chmod($this->licenseFile, 0666);
+                @chown($this->licenseFile, 'www-data');
+                @chgrp($this->licenseFile, 'www-data');
+                
+                error_log("✓ Licença deletada: $chave");
+                return ['sucesso' => true, 'mensagem' => 'Licença deletada com sucesso'];
+            } else {
+                error_log("✗ Erro ao salvar arquivo após deletar licença");
+                return ['erro' => true, 'mensagem' => 'Erro ao salvar arquivo'];
+            }
+        } catch (Exception $e) {
+            error_log("✗ Erro ao deletar licença: " . $e->getMessage());
+            return ['erro' => true, 'mensagem' => 'Erro: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
      * Retorna array com todas as licenças geradas (histórico)
      */
     public function getAllLicenses() {
