@@ -14,6 +14,53 @@ require_once dirname(__FILE__) . '/src/auth_handler.php';
 $addon_base = dirname(__FILE__);
 require_once $addon_base . '/addons.class.php';
 
+// === CARREGAR CONFIGURAÇÃO DE BANCO DE DADOS ===
+require_once $addon_base . '/src/cto/config/database.php';
+
+// === CALCULAR ESTATÍSTICAS DINÂMICAS ===
+$ctos_cadastradas = 0;
+$portas_totais = 0;
+$portas_livres = 0;
+$portas_ativas = 0;
+$portas_utilizadas = 0;
+
+if ($connection) {
+    // Contar CTOs cadastradas
+    $query_ctos = "SELECT COUNT(*) as total FROM mp_caixa";
+    $result_ctos = mysqli_query($connection, $query_ctos);
+    if ($result_ctos) {
+        $row = mysqli_fetch_assoc($result_ctos);
+        $ctos_cadastradas = intval($row['total']);
+    }
+    
+    // Calcular portas totais (soma das capacidades)
+    $query_portas = "SELECT SUM(capacidade) as total FROM mp_caixa";
+    $result_portas = mysqli_query($connection, $query_portas);
+    if ($result_portas) {
+        $row = mysqli_fetch_assoc($result_portas);
+        $portas_totais = intval($row['total']) ?: 0;
+    }
+    
+    // Contar clientes atribuídos (portas utilizadas)
+    $query_utilizadas = "SELECT COUNT(*) as total FROM sis_cliente";
+    $result_utilizadas = mysqli_query($connection, $query_utilizadas);
+    if ($result_utilizadas) {
+        $row = mysqli_fetch_assoc($result_utilizadas);
+        $portas_utilizadas = intval($row['total']) ?: 0;
+        $portas_livres = $portas_totais - $portas_utilizadas;
+    }
+    
+    // Contar clientes online (portas ativas)
+    $query_ativas = "SELECT COUNT(*) as total FROM sis_cliente sc
+                    INNER JOIN radacct ra ON ra.username = sc.login 
+                    WHERE ra.acctstoptime IS NULL";
+    $result_ativas = mysqli_query($connection, $query_ativas);
+    if ($result_ativas) {
+        $row = mysqli_fetch_assoc($result_ativas);
+        $portas_ativas = intval($row['total']) ?: 0;
+    }
+}
+
 // === VALIDAR LICENÇA ===
 // Comentado temporariamente para evitar erro 500 em novos servidores
 // A licença será validada quando o arquivo LicenseMiddleware.php estiver disponível
@@ -335,25 +382,25 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
             <div class="stat-card">
                 <div class="icon">📍</div>
                 <h3>CTOs Cadastradas</h3>
-                <div class="value">67</div>
+                <div class="value"><?php echo $ctos_cadastradas; ?></div>
             </div>
 
             <div class="stat-card">
                 <div class="icon">🔌</div>
                 <h3>Portas Totais</h3>
-                <div class="value">544</div>
+                <div class="value"><?php echo $portas_totais; ?></div>
             </div>
 
             <div class="stat-card">
                 <div class="icon">✅</div>
                 <h3>Portas Livres</h3>
-                <div class="value">497</div>
+                <div class="value"><?php echo $portas_livres; ?></div>
             </div>
 
             <div class="stat-card">
                 <div class="icon">🟢</div>
                 <h3>Portas Ativas</h3>
-                <div class="value">47</div>
+                <div class="value"><?php echo $portas_ativas; ?></div>
             </div>
         </div>
 
