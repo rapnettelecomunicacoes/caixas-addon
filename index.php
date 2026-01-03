@@ -42,13 +42,20 @@ if (file_exists($addon_base . '/src/cto/config/database.php')) {
             $portas_totais = intval($row['total']) ?: 0;
         }
         
-        // Contar clientes atribuídos a CTOs (portas utilizadas)
-        $query_utilizadas = "SELECT COUNT(*) as total FROM sis_cliente WHERE cto_id IS NOT NULL AND cto_id > 0";
-        $result_utilizadas = @mysqli_query($connection, $query_utilizadas);
-        if ($result_utilizadas) {
-            $row = mysqli_fetch_assoc($result_utilizadas);
-            $portas_utilizadas = intval($row['total']) ?: 0;
-            $portas_livres = max(0, $portas_totais - $portas_utilizadas);
+        // Calcular portas livres por CTO
+        // Soma de (capacidade_cto - clientes_atribuidos_naquela_cto) para cada CTO
+        $query_livres = "SELECT SUM(mp.capacidade - COALESCE(cliente_count.total, 0)) as total
+                        FROM mp_caixa mp
+                        LEFT JOIN (
+                            SELECT cto_id, COUNT(*) as total 
+                            FROM sis_cliente 
+                            WHERE cto_id IS NOT NULL AND cto_id > 0
+                            GROUP BY cto_id
+                        ) cliente_count ON mp.id = cliente_count.cto_id";
+        $result_livres = @mysqli_query($connection, $query_livres);
+        if ($result_livres) {
+            $row = mysqli_fetch_assoc($result_livres);
+            $portas_livres = max(0, intval($row['total']) ?: 0);
         }
         
         // Contar clientes online atribuídos a CTOs (portas ativas)
