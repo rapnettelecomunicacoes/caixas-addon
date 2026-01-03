@@ -89,7 +89,7 @@ if (file_exists($addon_base . "/src/LicenseMiddleware.php")) {
 $route = isset($_GET['_route']) ? $_GET['_route'] : '';
 
 // === INCLUIR APLICAÇÃO SE HOUVER ROTA ===
-if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup', 'maps', 'mapadeclientes', 'mapadectos', 'configurar'])) {
+if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup', 'maps', 'mapadeclientes', 'mapadectos', 'configurar', 'viabilidade'])) {
     $app_file = $addon_base . '/src/cto/componente/' . $route . '/index.php';
     if (file_exists($app_file)) {
         include_once $app_file;
@@ -468,6 +468,18 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
                         de clientes atribuídos, status online/offline e capacidade de portas.
                     </div>
                     <a href="?_route=mapadectos" class="action-card-button amber">Abrir Mapa</a>
+                </div>
+            </div>
+
+            <!-- Card: Viabilidade de Atendimento -->
+            <div class="action-card">
+                <div class="action-card-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">🚶</div>
+                <div class="action-card-body">
+                    <div class="action-card-title">Viabilidade de Atendimento</div>
+                    <div class="action-card-description">
+                        Digite um endereço para encontrar a CTO mais próxima e visualize a rota até ela. Modo de deslocamento: A pé (Walking).
+                    </div>
+                    <a href="?_route=viabilidade" class="action-card-button" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">Calcular Viabilidade</a>
                 </div>
             </div>
 
