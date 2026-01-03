@@ -90,7 +90,9 @@ class LicenseManager {
         ];
         
         if (file_put_contents($this->licenseFile, json_encode($licenseData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
-            chmod($this->licenseFile, 0644);
+            chmod($this->licenseFile, 0666);
+            @chown($this->licenseFile, 'www-data');
+            @chgrp($this->licenseFile, 'www-data');
             $this->licenseData = $licenseData;
             return ['sucesso' => true, 'mensagem' => 'Licença ativada com sucesso'];
         } else {
@@ -144,7 +146,9 @@ class LicenseManager {
         
         // Salvar no arquivo
         if (file_put_contents($this->licenseFile, json_encode($licenseData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
-            chmod($this->licenseFile, 0644);
+            chmod($this->licenseFile, 0666);
+            @chown($this->licenseFile, 'www-data');
+            @chgrp($this->licenseFile, 'www-data');
             $this->licenseData = $licenseData;
             return [
                 'sucesso' => true, 

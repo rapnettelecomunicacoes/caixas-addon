@@ -325,9 +325,15 @@ check_license() {
 }
 EOJSON
         
-        chmod 644 "$LICENSE_FILE"
+        # Definir proprietário e permissões para que www-data possa escrever
+        chmod 666 "$LICENSE_FILE"
+        chown www-data:www-data "$LICENSE_FILE" 2>/dev/null || true
+        
         print_success "Arquivo de licença criado (aguardando ativação): $LICENSE_FILE"
     else
+        # Garantir que permissões estão corretas
+        chmod 666 "$LICENSE_FILE"
+        chown www-data:www-data "$LICENSE_FILE" 2>/dev/null || true
         print_success "Arquivo de licença encontrado: $LICENSE_FILE"
     fi
 }
