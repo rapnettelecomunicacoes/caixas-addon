@@ -1,0 +1,28 @@
+
+# Debug e Testes
+.htaccess
+debug.log
+error.log
+*.log
+test_*.php
+teste_*.php
+diagnostico*.php
+gerar_licenca*.php
+criar_licenca*.php
+check_session.php
+logger.php
+
+# Backups
+*.bak
+*.original
+*_debug.php
+*.template
+
+# Logs
+src/debug*.log
+test_api_save.log
+
+# Arquivos temporários de verificação
+RESUMO_*.txt
+VERIFICACAO_*.md
+VERIFICACAO_*.txt
