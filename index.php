@@ -404,7 +404,7 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
         <!-- Header -->
         <div class="header">
             <div style="flex: 1;">
-                <h1>🗺️ Mapa de CTOs</h1>
+                <h1>🗺️ Gerenciamento FTTH</h1>
                 <p>Sistema de Gerenciamento de Caixas de Terminação Óptica</p>
             </div>
             <div style="display: flex; gap: 10px; align-items: flex-start;">
