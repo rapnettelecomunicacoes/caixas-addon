@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ativar_licenca'])) {
             </div>
         <?php endif; ?>
         
-        <?php if (!$status['instalada']): ?>
+        <?php if (!$status['instalada'] || $status['expirada']): ?>
             <form method="POST">
                 <div class="form-group">
                     <label for="cliente">Nome da Empresa *</label>
@@ -198,8 +198,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ativar_licenca'])) {
                 <button type="submit" name="ativar_licenca">Ativar Licença</button>
                 
                 <div class="info-box">
-                    <strong>❓ Como obter uma chave de licença?</strong>
-                    Acesse o painel de administração do mk-auth e solicite uma chave de licença para este addon.
+                    <?php if ($status['expirada']): ?>
+                        <strong>⚠️ Sua licença expirou!</strong>
+                        Insira uma nova chave de licença para continuar usando o addon.
+                    <?php else: ?>
+                        <strong>❓ Como obter uma chave de licença?</strong>
+                        Acesse o painel de administração do mk-auth e solicite uma chave de licença para este addon.
+                    <?php endif; ?>
                 </div>
             </form>
         <?php else: ?>
