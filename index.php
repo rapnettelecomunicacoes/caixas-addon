@@ -600,7 +600,7 @@ if (!empty($route) && in_array($route, ['inicio', 'adicionar', 'editar', 'backup
 
         <!-- Welcome Section -->
         <div class="welcome-section">
-            <h2>Bem-vindo ao Sistema de Gerenciamento de CTOs</h2>
+            <h2>Bem-vindo ao Sistema de Gerenciamento FTTH</h2>
             <p>
                 Este sistema foi desenvolvido para facilitar o gerenciamento de todas as Caixas de Terminação Óptica (CTOs) 
                 da sua rede de fibra óptica. Com funcionalidades intuitivas e uma interface amigável, você poderá:
